@@ -50,8 +50,7 @@ def handle_create(client, resource_name, resource_fields, resource_file=None):
         assert resource_file is not None, \
             "'resource_file' is mandatory for data store 'create'"
         with open(resource_file, 'r') as f:
-            DataStore.create(client, resource_fields,
-                                           file_object=f)
+            DataStore.create(client, resource_fields, file_object=f)
     elif resource_name in ['tc', 'testconfig', 'test-config', 'test_config']:
         TestConfig.create(client, resource_fields)
     elif resource_name in ['us', 'userscenario', 'user-scenario',
