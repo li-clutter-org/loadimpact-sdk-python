@@ -8,7 +8,8 @@ import hashlib
 
 from exceptions import CoercionError, ResponseParseError
 from fields import (
-    DateTimeField, DictField, IntegerField, StringField, UnicodeField)
+    DateTimeField, DictField, IntegerField, ListField, StringField,
+    UnicodeField)
 from pprint import pformat
 from utils import is_dict_different
 
@@ -147,6 +148,29 @@ class DataStore(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
         'updated': DateTimeField
     }
 
+    # Data store conversion status codes
+    STATUS_QUEUED = 0
+    STATUS_CONVERTING = 1
+    STATUS_FINISHED = 2
+    STATUS_FAILED = 3
+
+    def has_conversion_finished(self, client):
+        """Check whether data store conversion has finished or not.
+
+        Args:
+            client: API client instance.
+
+        Returns:
+            True if data store conversion has completed, otherwise False.
+
+        Raises:
+            ResponseParseError: Unable to parse response (sync call) from API.
+        """
+        self.sync(client)
+        if self.status in [DataStore.STATUS_FINISHED, DataStore.STATUS_FAILED]:
+            return True
+        return False
+
 
 class LoadZone(Resource, ListMixin):
     resource_name = 'load-zones'
@@ -230,17 +254,20 @@ class TestResult(object):
         return '%s:%s:%s' % (name, str(load_zone_id), str(user_scenario_id))
 
     @classmethod
-    def result_id_from_custom_metric_name(cls, custom_name):
-        return '__custom%s' % (hashlib.md5.new(custom_name).digest())
+    def result_id_from_custom_metric_name(cls, custom_name, load_zone_id,
+                                          user_scenario_id):
+        return '__custom_%s:%s:%s' % (hashlib.md5(custom_name).hexdigest(),
+                                     str(load_zone_id), str(user_scenario_id))
 
     @classmethod
     def result_id_for_page(cls, page_name, load_zone_id, user_scenario_id):
-        return '__li_page%s' % (hashlib.md5.new(page_name).digest())
+        return '__li_page%s:%s:%s' % (hashlib.md5(page_name).hexdigest(),
+                                      str(load_zone_id), str(user_scenario_id))
 
     @classmethod
     def result_id_for_url(cls, url, load_zone_id, user_scenario_id,
                           method='GET', status_code=200):
-        return '__li_url%s:%s:%s:%s:%s' % (hashlib.md5.new(url).digest(),
+        return '__li_url%s:%s:%s:%s:%s' % (hashlib.md5(url).hexdigest(),
                                            str(load_zone_id),
                                            str(user_scenario_id),
                                            method, str(status_code))
@@ -344,6 +371,10 @@ class TestConfig(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
     SBU = 'sbu'
     VU = 'vu'
 
+    def __init__(self, **kwargs):
+        super(TestConfig, self).__init__(**kwargs)
+        self._set_default_config()
+
     def add_user_scenario(self, user_scenario,
                           load_zone_id=LoadZone.AMAZON_US_ASHBURN,
                           traffic_percent=100):
@@ -354,7 +385,7 @@ class TestConfig(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
     def add_user_scenario_with_id(self, user_scenario_id,
                                   load_zone_id=LoadZone.AMAZON_US_ASHBURN,
                                   traffic_percent=100):
-        if 'load_schedule' not in self.config:
+        if 'tracks' not in self.config:
             self.config['tracks'] = []
 
         self.config['tracks'].append({
@@ -427,6 +458,16 @@ class TestConfig(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
         except KeyError, e:
             raise ResponseParseError(e)
 
+    def _set_default_config(self):
+        if 'load_schedule' not in self.config:
+            self.config['load_schedule'] = []
+
+        if 'tracks' not in self.config:
+            self.config['tracks'] = []
+
+        if 'user_type' not in self.config:
+            self.config['user_type'] = TestConfig.SBU
+
 
 class _TestResultStream(Resource):
     resource_name = 'tests'
@@ -481,6 +522,7 @@ class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
         'name': UnicodeField,
         'script_type': StringField,
         'load_script': UnicodeField,
+        'data_stores': ListField,
         'created': DateTimeField,
         'updated': DateTimeField
     }
