@@ -55,8 +55,8 @@ class Resource(object):
 
     def _set_fields(self, data):
         fields = self.__class__.fields
-        self._fields = {k : f(data.get(k, None))
-                        for k, f in fields.iteritems()}
+        for k, f in fields.iteritems():
+            self._fields[k] = f(data.get(k, None))
 
 
 class GetMixin(object):
