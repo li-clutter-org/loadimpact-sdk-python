@@ -1,0 +1,15 @@
+# Python
+*.pyc
+*.pyo
+build/
+
+# MacOSX
+.DS_Store
+._*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
