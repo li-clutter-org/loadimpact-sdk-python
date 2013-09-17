@@ -37,6 +37,7 @@ config.delete(client)
 
 # Start test based on config
 test = loadimpactsdk.TestConfig.start_test(client)
+world_id = LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD)
 stream = test.result_stream([
     TestResult.result_id_from_name(TestResult.USER_LOAD_TIME,
                                    load_zone_id=world_id),
@@ -49,6 +50,7 @@ while not test.is_done():
 
 # Get results from old test
 test = loadimpactsdk.Test.get(1)
+world_id = LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD)
 stream = test.result_stream([
     TestResult.result_id_from_name(TestResult.USER_LOAD_TIME,
                                    load_zone_id=world_id),
