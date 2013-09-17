@@ -1,7 +1,7 @@
 # coding=utf-8
 
 __all__ = ['DateTimeField', 'DictField', 'FloatField', 'IntegerField',
-           'ObjectField', 'StringField', 'UnicodeField']
+           'ListField', 'ObjectField', 'StringField', 'UnicodeField']
 
 from datetime import datetime
 from exceptions import CoercionError
@@ -86,6 +86,16 @@ class IntegerField(Field):
             return int(value)
         except ValueError, e:
             raise CoercionError(e)
+
+
+class ListField(Field):
+    field_type = list
+
+    @classmethod
+    def coerce(cls, value):
+        if not isinstance(value, cls.field_type):
+            raise CoercionError(u"'%s' is not a list" % repr(value))
+        return value
 
 
 class StringField(Field):
