@@ -298,6 +298,22 @@ class Test(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
     STATUS_ABORTING_SYSTEM = 7
     STATUS_ABORTED_SYSTEM = 8
 
+    def abort(self, client):
+        """Abort test.
+
+        Args:
+            client: API client instance.
+
+        Returns:
+            True if abort has been acknowledged and test is in a test where
+            it's possible to abort, False otherwise.
+        """
+        response = client.post(self.__class__._path(resource_id=self.id,
+                               action='abort'))
+        if 409 == response.status_code:
+            return False
+        return True
+
     def is_done(self, client):
         """Check whether test is done or not.
 
@@ -494,7 +510,7 @@ class _TestResultStream(Resource):
         return self._series
 
     def poll(self, client):
-        q = ['%s|%d' % (rid.split(':')[0], self._last.get(rid.split(':')[0], {}).get('offset', -1))
+        q = ['%s|%d' % (rid, self._last.get(rid.split(':')[0], {}).get('offset', -1))
              for rid in self.result_ids]
         response = client.get(self.__class__._path(resource_id=self.test_id,
                                                    action='results'),
