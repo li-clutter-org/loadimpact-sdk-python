@@ -491,7 +491,7 @@ class _TestResultStream(Resource):
     def __init__(self, test_id, result_ids):
         self.test_id = test_id
         self.result_ids = result_ids
-        self._last = {rid.split(':')[0]: {'offset': -1} for rid in result_ids}
+        self._last = dict([(rid.split(':')[0], {'offset': -1}) for rid in result_ids])
         self._last_two = []
         self._series = {}
 
@@ -543,8 +543,8 @@ class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
         'updated': DateTimeField
     }
 
-    def clone(client, name=None):
-        self.post(client, data={''})
+    def clone(self, client, name=None):
+        self.post(client, data={})
 
 
 class UserScenarioValidation(Resource, ListMixin, GetMixin, CreateMixin):
