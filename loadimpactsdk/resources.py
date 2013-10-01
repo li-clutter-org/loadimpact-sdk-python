@@ -233,6 +233,7 @@ class TestResult(object):
     BANDWIDTH = '__li_bandwidth'
     CONTENT_TYPES = '__li_content_type'
     CONTENT_TYPES_LOAD_TIME = '__li_content_type_load_time'
+    FAILURE_RATE = '__li_failure_rate'
     LIVE_FEEDBACK = '__li_live_feedback'
     LOAD_GENERATOR_CPU_UTILIZATION = '__li_loadgen_cpu_utilization'
     LOAD_GENERATOR_MEMORY_UTILIZATION = '__li_loadgen_memory_utilization'
@@ -333,8 +334,7 @@ class Test(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
             return True
         return False
 
-    def result_stream(self, result_ids=[TestResult.USER_LOAD_TIME,
-                                        TestResult.ACTIVE_USERS]):
+    def result_stream(self, result_ids=None):
         """Get access to result stream.
 
         Args:
@@ -343,6 +343,8 @@ class Test(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
         Returns:
             Test result stream object.
         """
+        if not result_ids:
+            result_ids = [TestResult.USER_LOAD_TIME, TestResult.ACTIVE_USERS]
         return _TestResultStream(self.id, result_ids)
 
     @classmethod
@@ -491,7 +493,7 @@ class _TestResultStream(Resource):
     def __init__(self, test_id, result_ids):
         self.test_id = test_id
         self.result_ids = result_ids
-        self._last = dict([(rid.split(':')[0], {'offset': -1}) for rid in result_ids])
+        self._last = dict([(rid, {'offset': -1}) for rid in result_ids])
         self._last_two = []
         self._series = {}
 
@@ -510,7 +512,7 @@ class _TestResultStream(Resource):
         return self._series
 
     def poll(self, client):
-        q = ['%s|%d' % (rid, self._last.get(rid.split(':')[0], {}).get('offset', -1))
+        q = ['%s|%d' % (rid, self._last.get(rid, {}).get('offset', -1))
              for rid in self.result_ids]
         response = client.get(self.__class__._path(resource_id=self.test_id,
                                                    action='results'),
