@@ -520,7 +520,7 @@ class _TestResultStream(Resource):
         results = response.json()
         for rid, data in results.iteritems():
             try:
-                self._last[rid] = data[0]
+                self._last[rid] = data[-1]
             except IndexError:
                 continue
             if rid not in self._series:
