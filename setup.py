@@ -1,5 +1,9 @@
 # coding=utf-8
 
+# Make sure setup tools is installed, if not install it.
+from ez_setup import use_setuptools
+use_setuptools()
+
 from setuptools import setup
 
 import sys, os
