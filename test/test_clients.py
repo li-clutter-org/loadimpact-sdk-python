@@ -37,11 +37,16 @@ class MockClient(Client):
         self.last_request_method = method
         self.last_request_args = args
         self.last_request_kwargs = kwargs
+        if isinstance(kwargs.get('data'), str):
+            self.last_request_kwargs['data'] = json.loads(kwargs['data'])
         if 'raise_exception_cls' in self.kwargs:
             raise self.kwargs.get('raise_exception_cls')
         nkwargs = {}
         if kwargs.get('data'):
-            nkwargs = kwargs['data']
+            if isinstance(kwargs['data'], dict):
+                nkwargs = kwargs['data']
+            elif isinstance(kwargs['data'], str):
+                nkwargs = json.loads(kwargs['data'])
         return MockRequestsResponse(**nkwargs)
 
 
@@ -71,10 +76,8 @@ class TestClientsClient(unittest.TestCase):
         }
         csv = 'column1,column2,column3'
         data_store = client.create_data_store(data, StringIO(csv))
-        url = MockClient.api_base_url + DataStore.resource_name
 
         self.assertEquals(client.last_request_method, 'post')
-        self.assertEquals(client.last_request_args[0], url)
         self.assertEquals(client.last_request_kwargs['data']['name'],
                           data['name'])
         self.assertEquals(client.last_request_kwargs['data']['fromline'],
