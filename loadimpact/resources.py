@@ -274,6 +274,75 @@ class TestResult(object):
                                            method, str(status_code))
 
 
+class _TestResultStream(Resource):
+    resource_name = 'tests'
+
+    def __init__(self, test, result_ids):
+        self.test = test
+        self.result_ids = result_ids
+        self._last = dict([(rid, {'offset': -1}) for rid in result_ids])
+        self._last_two = []
+        self._series = {}
+
+    @property
+    def series(self):
+        return self._series
+
+    def __call__(self, poll_rate=3, post_polls=5):
+        def is_done(self):
+            if not self.test.is_done() or not self.is_done():
+                return False
+            return True
+
+        done = False
+        while not done or 0 < post_polls:
+            done = is_done(self)
+            if done:
+                post_polls = post_polls - 1
+            q = ['%s|%d' % (rid, self._last.get(rid, {}).get('offset', -1))
+                 for rid in self.result_ids]
+            path = self.__class__._path(
+                resource_id=self.test.id, action='results')
+            response = self._get(path, {'ids': ','.join(q)})
+            results = response.json()
+            change = {}
+            for rid, data in results.iteritems():
+                try:
+                    if data[0]['offset'] > self._last[rid]['offset']:
+                        change[rid] = data[-1]
+                        self._last[rid] = data[-1]
+                except (IndexError, KeyError):
+                    continue
+                if rid not in self._series:
+                    self._series[rid] = []
+                self._series[rid].extend(data)
+
+            if 2 == len(self._last_two):
+                self._last_two.pop(0)
+            self._last_two.append(self._last)
+            if change:
+                yield change
+            sleep(poll_rate)
+
+    def __iter__(self):
+        return self.__call__()
+
+    def is_done(self):
+        if 2 != len(self._last_two):
+            return False
+        if is_dict_different(self._last_two[0], self._last_two[1]):
+            return False
+        return True
+
+    def last(self, result_id=None):
+        if not result_id:
+            return self._last
+        return self._last[result_id]
+
+    def _get(self, path, params):
+        return self.test.client.get(path, params=params)
+
+
 class Test(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
     resource_name = 'tests'
     fields = {
@@ -286,6 +355,7 @@ class Test(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
         'started': DateTimeField,
         'ended': DateTimeField
     }
+    stream_class = _TestResultStream
 
     # Test status codes
     STATUS_CREATED = -1
@@ -339,7 +409,7 @@ class Test(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
         """
         if not result_ids:
             result_ids = [TestResult.USER_LOAD_TIME, TestResult.ACTIVE_USERS]
-        return _TestResultStream(self, result_ids)
+        return self.__class__.stream_class(self, result_ids)
 
     @classmethod
     def status_code_to_text(cls, status_code):
@@ -481,73 +551,6 @@ class TestConfig(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
             self.config['user_type'] = TestConfig.SBU
 
 
-class _TestResultStream(Resource):
-    resource_name = 'tests'
-
-    def __init__(self, test, result_ids):
-        self.test = test
-        self.result_ids = result_ids
-        self._last = dict([(rid, {'offset': -1}) for rid in result_ids])
-        self._last_two = []
-        self._series = {}
-
-    @property
-    def series(self):
-        return self._series
-
-    def __call__(self, poll_rate=3, post_polls=5):
-        def is_done(self):
-            if not self.test.is_done() or not self.is_done():
-                return False
-            return True
-
-        done = False
-        while not done or 0 < post_polls:
-            done = is_done(self)
-            if done:
-                post_polls = post_polls - 1
-            q = ['%s|%d' % (rid, self._last.get(rid, {}).get('offset', -1))
-                 for rid in self.result_ids]
-            path = self.__class__._path(
-                resource_id=self.test.id, action='results')
-            response = self._get(path, {'ids': ','.join(q)})
-            results = response.json()
-            change = {}
-            for rid, data in results.iteritems():
-                try:
-                    if data[0]['offset'] > self._last[rid]['offset']:
-                        change[rid] = data[-1]
-                        self._last[rid] = data[-1]
-                except (IndexError, KeyError):
-                    continue
-                if rid not in self._series:
-                    self._series[rid] = []
-                self._series[rid].extend(data)
-
-            if 2 == len(self._last_two):
-                self._last_two.pop(0)
-            self._last_two.append(self._last)
-            if change:
-                yield change
-            sleep(poll_rate)
-
-    def __iter__(self):
-        return self.__call__()
-
-    def is_done(self):
-        if 2 != len(self._last_two):
-            return False
-        return False if is_dict_different(self._last_two[0], self._last_two[1]) else True
-
-    def last(self, result_id=None):
-        if not result_id:
-            return self._last
-        return self._last[result_id]
-
-    def _get(self, path, params):
-        return self.test.client.get(path, params=params)
-
-
 class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
                    UpdateMixin):
     resource_name = 'user-scenarios'
@@ -567,63 +570,6 @@ class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
     def validate(self):
         return self.client.create_user_scenario_validation(
             {'user_scenario_id': self.id})
-
-
-class UserScenarioValidation(Resource, GetMixin, CreateMixin):
-    resource_name = 'user-scenario-validations'
-    fields = {
-        'id': IntegerField,
-        'user_scenario_id': IntegerField,
-        'status': IntegerField,
-        'status_text': UnicodeField,
-        'created': DateTimeField,
-        'started': DateTimeField,
-        'ended': DateTimeField
-    }
-
-    # Validation status codes
-    STATUS_QUEUED = 0
-    STATUS_INITIALIZING = 1
-    STATUS_RUNNING = 2
-    STATUS_FINISHED = 3
-    STATUS_FAILED = 4
-
-    def is_done(self):
-        """Check whether validation is done or not.
-
-        Returns:
-            True if validation has completed, otherwise False.
-
-        Raises:
-            ResponseParseError: Unable to parse response (sync call) from API.
-        """
-        self.sync()
-        if self.status in [UserScenarioValidation.STATUS_FINISHED,
-                           UserScenarioValidation.STATUS_FAILED]:
-            return True
-        return False
-
-    def result_stream(self):
-        """Get access to result stream.
-
-        Returns:
-            User scenario validation result stream object.
-        """
-        return _UserScenarioValidationResultStream(self)
-
-    @classmethod
-    def status_code_to_text(cls, status_code):
-        if UserScenarioValidation.STATUS_QUEUED == status_code:
-            return 'queued'
-        elif UserScenarioValidation.STATUS_INITIALIZING == status_code:
-            return 'initializing'
-        elif UserScenarioValidation.STATUS_RUNNING == status_code:
-            return 'running'
-        elif UserScenarioValidation.STATUS_FINISHED == status_code:
-            return 'finished'
-        elif UserScenarioValidation.STATUS_FAILED == status_code:
-            return 'failed'
-        return 'unknown'
 
 
 class _UserScenarioValidationResultStream(Resource):
@@ -671,3 +617,61 @@ class _UserScenarioValidationResultStream(Resource):
                            UserScenarioValidation.STATUS_FAILED]:
             return True
         return False
+
+
+class UserScenarioValidation(Resource, GetMixin, CreateMixin):
+    resource_name = 'user-scenario-validations'
+    fields = {
+        'id': IntegerField,
+        'user_scenario_id': IntegerField,
+        'status': IntegerField,
+        'status_text': UnicodeField,
+        'created': DateTimeField,
+        'started': DateTimeField,
+        'ended': DateTimeField
+    }
+    stream_class = _UserScenarioValidationResultStream
+
+    # Validation status codes
+    STATUS_QUEUED = 0
+    STATUS_INITIALIZING = 1
+    STATUS_RUNNING = 2
+    STATUS_FINISHED = 3
+    STATUS_FAILED = 4
+
+    def is_done(self):
+        """Check whether validation is done or not.
+
+        Returns:
+            True if validation has completed, otherwise False.
+
+        Raises:
+            ResponseParseError: Unable to parse response (sync call) from API.
+        """
+        self.sync()
+        if self.status in [UserScenarioValidation.STATUS_FINISHED,
+                           UserScenarioValidation.STATUS_FAILED]:
+            return True
+        return False
+
+    def result_stream(self):
+        """Get access to result stream.
+
+        Returns:
+            User scenario validation result stream object.
+        """
+        return self.__class__.stream_class(self)
+
+    @classmethod
+    def status_code_to_text(cls, status_code):
+        if UserScenarioValidation.STATUS_QUEUED == status_code:
+            return 'queued'
+        elif UserScenarioValidation.STATUS_INITIALIZING == status_code:
+            return 'initializing'
+        elif UserScenarioValidation.STATUS_RUNNING == status_code:
+            return 'running'
+        elif UserScenarioValidation.STATUS_FINISHED == status_code:
+            return 'finished'
+        elif UserScenarioValidation.STATUS_FAILED == status_code:
+            return 'failed'
+        return 'unknown'
