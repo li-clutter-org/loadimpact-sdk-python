@@ -8,7 +8,7 @@ import hashlib
 
 from exceptions import CoercionError, ResponseParseError
 from fields import (
-    DateTimeField, DictField, IntegerField, ListField, StringField,
+    DateTimeField, DictField, Field, IntegerField, ListField, StringField,
     UnicodeField)
 from pprint import pformat
 from time import sleep
@@ -47,19 +47,21 @@ class Resource(object):
 
     @classmethod
     def _path(cls, resource_id=None, action=None):
-        if resource_id:
+        if resource_id is not None:
             if action:
                 return '%s/%s/%s' % (cls.resource_name, str(resource_id),
                                      action)
-            else:
-                return '%s/%s' % (cls.resource_name, str(resource_id))
-        else:
-            return cls.resource_name
+            return '%s/%s' % (cls.resource_name, str(resource_id))
+        return cls.resource_name
 
     def _set_fields(self, data):
         fields = self.__class__.fields
         for k, f in fields.iteritems():
-            self._fields[k] = f(data.get(k, None))
+            if isinstance(f, tuple):
+                fun, opts = f
+                self._fields[k] = fun(data.get(k, fun.default()), options=opts)
+            else:
+                self._fields[k] = f(data.get(k, f.default()))
 
 
 class GetMixin(object):
@@ -110,10 +112,20 @@ class DeleteMixin(object):
 
 
 class UpdateMixin(object):
-    def update(self, data):
-        if isinstance(data, dict):
-            data = json.dumps(data)
-        response = self.client.put(self.__class__._path(), data=data)
+    def update(self, data=None):
+        if data:
+            if isinstance(data, str):
+                data = json.loads(data)
+            self._set_fields(data)
+
+        data = {}
+        fields = self.__class__.fields
+        for k, f in fields.iteritems():
+            if self._fields[k].has_option(Field.SERIALIZE):
+                data[k] = getattr(self, k)
+
+        response = self.client.put(self.__class__._path(resource_id=self.id),
+                                   data=json.dumps(data))
         try:
             self._set_fields(response.json())
         except CoercionError, e:
@@ -128,7 +140,6 @@ class ListMixin(object):
             resources = []
             l = response.json()
             for r in l:
-                print l
                 instance = cls(client)
                 instance._set_fields(r)
                 resources.append(instance)
@@ -441,9 +452,9 @@ class TestConfig(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
     resource_name = 'test-configs'
     fields = {
         'id': IntegerField,
-        'name': UnicodeField,
-        'url': UnicodeField,
-        'config': DictField,
+        'name': (UnicodeField, Field.SERIALIZE),
+        'url': (UnicodeField, Field.SERIALIZE),
+        'config': (DictField, Field.SERIALIZE),
         'public_url': UnicodeField,
         'created': DateTimeField,
         'updated': DateTimeField
@@ -556,10 +567,10 @@ class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
     resource_name = 'user-scenarios'
     fields = {
         'id': IntegerField,
-        'name': UnicodeField,
+        'name': (UnicodeField, Field.SERIALIZE),
         'script_type': StringField,
-        'load_script': UnicodeField,
-        'data_stores': ListField,
+        'load_script': (UnicodeField, Field.SERIALIZE),
+        'data_stores': (ListField, Field.SERIALIZE),
         'created': DateTimeField,
         'updated': DateTimeField
     }

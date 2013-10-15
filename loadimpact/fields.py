@@ -11,11 +11,20 @@ from utils import UTC
 class Field(object):
     """All field classes derive from this base class."""
 
-    def __init__(self, value=None):
+    # Option enumeration.
+    SERIALIZE = 1
+
+    def __init__(self, value=None, options=None):
         if value is None:
             self._value = self.__class__.default()
         else:
             self._value = self.__class__.coerce(value)
+        self.options = []
+        if options:
+            if isinstance(options, int):
+                self.options = [options]
+            else:
+                self.options = list(options)
 
     @property
     def value(self):
@@ -30,6 +39,9 @@ class Field(object):
 
     def __repr__(self):
         return repr(self._value)
+
+    def has_option(self, option):
+        return option in self.options
 
     @classmethod
     def coerce(cls, value):
@@ -46,10 +58,13 @@ class DateTimeField(Field):
 
     @classmethod
     def coerce(cls, value):
-        try:
-            return datetime.strptime(value[:-6], cls.format).replace(tzinfo=UTC())
-        except ValueError, e:
-            raise CoercionError(e)
+        if not isinstance(value, cls.field_type):
+            try:
+                return datetime.strptime(value[:-6], cls.format).replace(
+                    tzinfo=UTC())
+            except ValueError, e:
+                raise CoercionError(e)
+        return value
 
     @classmethod
     def default(cls):
