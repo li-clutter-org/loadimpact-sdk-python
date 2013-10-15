@@ -13,6 +13,8 @@ from exceptions import (
     ForbiddenError, HTTPError, GoneError, MethodNotAllowedError,
     MissingApiTokenError, NotFoundError, RateLimitError, ServerError,
     TimeoutError, UnauthorizedError)
+from resources import (
+    DataStore, TestConfig, UserScenario, UserScenarioValidation)
 from urlparse import urljoin
 from version import __version__
 
@@ -32,11 +34,12 @@ def requests_exceptions_handling(func):
     return wrapper
 
 
-class ApiTokenClient(object):
-    """Client class handling all communication with the Load Impact REST API,
+class Client(object):
+    """Base client class handling all communication with the Load Impact REST API,
     using simple API token based authentication."""
 
     api_base_url = 'https://api.loadimpact.com/v2/'
+    default_timeout = 30
     error_classes = {
         400: BadRequestError,
         401: UnauthorizedError,
@@ -51,20 +54,62 @@ class ApiTokenClient(object):
                                                    requests.__version__)
     user_agent = "LoadImpactPythonSDK/%s (%s)" % (__version__, library_versions)
 
-    def __init__(self, api_token=None, debug=False):
-        if not api_token:
-            try:
-                self.api_token = os.environ['LOADIMPACT_API_TOKEN']
-            except KeyError:
-                raise MissingApiTokenError(u"An API token must be specified "
-                                           u"either as the first argument to "
-                                           u"ApiClient or by setting the "
-                                           u"environment variable "
-                                           u"LOADIMPACT_API_TOKEN.")
-        self.api_token = api_token
-
+    def __init__(self, timeout=default_timeout, debug=False):
+        self.timeout = timeout
         if debug:
             httplib.HTTPConnection.debuglevel = 1
+
+    def create_data_store(self, data, file_object):
+        return DataStore.create(self, data, file_object=file_object)
+
+    def get_data_store(self, resource_id):
+        return DataStore.get(self, resource_id)
+
+    def list_data_stores(self):
+        return DataStore.list(self)
+
+    def create_test_config(self, data):
+        return TestConfig.create(self, data)
+
+    def get_test_config(self, resource_id):
+        return TestConfig.get(self, resource_id)
+
+    def list_test_configs(self):
+        return TestConfig.list(self)
+
+    def create_user_scenario(self, data):
+        return UserScenario.create(self, data)
+
+    def get_user_scenario(self, resource_id):
+        return UserScenario.get(self, resource_id)
+
+    def list_user_scenarios(self):
+        return UserScenario.list(self)
+
+    def create_user_scenario_validation(self, data):
+        return UserScenarioValidation.create(self, data)
+
+    @requests_exceptions_handling
+    def delete(self, path, headers=None, params=None):
+        """Make a DELETE request to the API.
+
+        Args:
+            path: Path of resource URI to where we're making the request.
+            headers: Dict of headers to send with request.
+            params: Dict with query string parameters.
+
+        Returns:
+            A requests response object on success.
+
+        Raises:
+            BadRequestError: Request was deemed formatted incorrectly by server.
+            UnauthorizedError: API token is incorrect/not valid.
+            ForbiddenError: Permission denied.
+            APIError: Generic error from requests library.
+        """
+        url = urljoin(self.__class__.api_base_url, path)
+        response = self._request('delete', url, headers=headers, params=params)
+        return self._check_response(response)
 
     @requests_exceptions_handling
     def get(self, path, headers=None, params=None):
@@ -85,8 +130,7 @@ class ApiTokenClient(object):
             APIError: Generic error from requests library.
         """
         url = urljoin(self.__class__.api_base_url, path)
-        response = self._request('get', url, auth=(self.api_token, ''),
-                                 headers=headers, params=params)
+        response = self._request('get', url, headers=headers, params=params)
         return self._check_response(response)
 
     @requests_exceptions_handling
@@ -112,9 +156,8 @@ class ApiTokenClient(object):
         """
         url = urljoin(self.__class__.api_base_url, path)
         files = {'file': file_object} if file_object else None
-        response = self._request('post', url, auth=(self.api_token, ''),
-                                 headers=headers, params=params, data=data,
-                                 files=files)
+        response = self._request('post', url, headers=headers, params=params,
+                                 data=data, files=files)
         return self._check_response(response)
 
     @requests_exceptions_handling
@@ -139,32 +182,8 @@ class ApiTokenClient(object):
         """
         url = urljoin(self.__class__.api_base_url, path)
         files = {'file': file_object} if file_object else None
-        response = self._request('put', url, auth=(self.api_token, ''),
-                                 headers=headers, params=params, data=data,
-                                 files=files)
-        return self._check_response(response)
-
-    @requests_exceptions_handling
-    def delete(self, path, headers=None, params=None):
-        """Make a DELETE request to the API.
-
-        Args:
-            path: Path of resource URI to where we're making the request.
-            headers: Dict of headers to send with request.
-            params: Dict with query string parameters.
-
-        Returns:
-            A requests response object on success.
-
-        Raises:
-            BadRequestError: Request was deemed formatted incorrectly by server.
-            UnauthorizedError: API token is incorrect/not valid.
-            ForbiddenError: Permission denied.
-            APIError: Generic error from requests library.
-        """
-        url = urljoin(self.__class__.api_base_url, path)
-        response = self._request('delete', url, auth=(self.api_token, ''),
-                                 headers=headers, params=params)
+        response = self._request('put', url, headers=headers, params=params,
+                                 data=data, files=files)
         return self._check_response(response)
 
     def _check_response(self, response):
@@ -187,6 +206,9 @@ class ApiTokenClient(object):
 
         return response
 
+    def _prepare_requests_kwargs(self, kwargs):
+        return kwargs
+
     def _request(self, method, *args, **kwargs):
         headers = {'user-agent': self.__class__.user_agent}
         if 'headers' not in kwargs:
@@ -195,4 +217,31 @@ class ApiTokenClient(object):
             if not kwargs['headers']:
                 kwargs['headers'] = {}
             kwargs['headers']['user-agent'] = headers['user-agent']
+        kwargs['timeout'] = self.timeout
+        kwargs = self._prepare_requests_kwargs(kwargs)
+        return self._requests_request(method, *args, **kwargs)
+
+    def _requests_request(self, method, *args, **kwargs):
         return getattr(requests, method)(*args, **kwargs)
+
+
+class ApiTokenClient(Client):
+    """Client class handling all communication with the Load Impact REST API,
+    using simple API token based authentication."""
+
+    def __init__(self, api_token=None, *args, **kwargs):
+        super(ApiTokenClient, self).__init__(*args, **kwargs)
+        if not api_token:
+            try:
+                self.api_token = os.environ['LOADIMPACT_API_TOKEN']
+            except KeyError:
+                raise MissingApiTokenError(u"An API token must be specified "
+                                           u"either as the first argument to "
+                                           u"ApiClient or by setting the "
+                                           u"environment variable "
+                                           u"LOADIMPACT_API_TOKEN.")
+        self.api_token = api_token
+
+    def _prepare_requests_kwargs(self, kwargs):
+        kwargs['auth'] = (self.api_token, '')
+        return kwargs

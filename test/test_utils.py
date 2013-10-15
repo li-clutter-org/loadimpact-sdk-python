@@ -2,7 +2,7 @@
 
 import unittest
 
-from loadimpactsdk.utils import UTC
+from loadimpact.utils import UTC
 
 
 class TestUtilsUTC(unittest.TestCase):

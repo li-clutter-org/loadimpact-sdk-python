@@ -1,7 +1,7 @@
 # coding=utf-8
 
 __all__ = ['DataStore', 'LoadZone', 'Test', 'TestConfig', 'TestResult',
-           'UserScenario']
+           'UserScenario', 'UserScenarioValidation']
 
 import json
 import hashlib
@@ -11,6 +11,7 @@ from fields import (
     DateTimeField, DictField, IntegerField, ListField, StringField,
     UnicodeField)
 from pprint import pformat
+from time import sleep
 from utils import is_dict_different
 
 
@@ -19,8 +20,9 @@ class Resource(object):
 
     fields = {}
 
-    def __init__(self, **kwargs):
+    def __init__(self, client, **kwargs):
         super(Resource, self).__setattr__('_fields', {})
+        self.client = client
         self._set_fields(kwargs)
 
     def __getattr__(self, name):
@@ -65,14 +67,14 @@ class GetMixin(object):
     def get(cls, client, resource_id):
         response = client.get(cls._path(resource_id))
         try:
-            instance = cls()
+            instance = cls(client)
             instance._set_fields(response.json())
             return instance
         except CoercionError, e:
             raise ResponseParseError(e)
 
-    def sync(self, client):
-        response = client.get(self.__class__._path(self.id))
+    def sync(self):
+        response = self.client.get(self.__class__._path(self.id))
         try:
             self._set_fields(response.json())
         except CoercionError, e:
@@ -91,7 +93,7 @@ class CreateMixin(object):
         response = client.post(cls._path(), headers=headers, data=data,
                                file_object=file_object)
         try:
-            instance = cls()
+            instance = cls(client)
             instance._set_fields(response.json())
             return instance
         except CoercionError, e:
@@ -99,8 +101,8 @@ class CreateMixin(object):
 
 
 class DeleteMixin(object):
-    def delete(self, client):
-        client.delete(self.__class__._path(resource_id=self.id))
+    def delete(self):
+        self.client.delete(self.__class__._path(resource_id=self.id))
 
     @classmethod
     def delete_with_id(cls, client, resource_id):
@@ -108,14 +110,12 @@ class DeleteMixin(object):
 
 
 class UpdateMixin(object):
-    def update(self, client, data):
+    def update(self, data):
         if isinstance(data, dict):
             data = json.dumps(data)
-        response = client.put(cls._path(), data=data)
+        response = self.client.put(self.__class__._path(), data=data)
         try:
-            instance = cls()
-            instance._set_fields(response.json())
-            return instance
+            self._set_fields(response.json())
         except CoercionError, e:
             raise ResponseParseError(e)
 
@@ -128,7 +128,8 @@ class ListMixin(object):
             resources = []
             l = response.json()
             for r in l:
-                instance = cls()
+                print l
+                instance = cls(client)
                 instance._set_fields(r)
                 resources.append(instance)
             return resources
@@ -138,7 +139,6 @@ class ListMixin(object):
 
 class DataStore(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
     resource_name = 'data-stores'
-    create_content_type = 'multipart/form-data'
     fields = {
         'id': IntegerField,
         'name': UnicodeField,
@@ -154,7 +154,7 @@ class DataStore(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
     STATUS_FINISHED = 2
     STATUS_FAILED = 3
 
-    def has_conversion_finished(self, client):
+    def has_conversion_finished(self):
         """Check whether data store conversion has finished or not.
 
         Args:
@@ -166,7 +166,7 @@ class DataStore(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
         Raises:
             ResponseParseError: Unable to parse response (sync call) from API.
         """
-        self.sync(client)
+        self.sync()
         if self.status in [DataStore.STATUS_FINISHED, DataStore.STATUS_FAILED]:
             return True
         return False
@@ -299,27 +299,21 @@ class Test(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
     STATUS_ABORTING_SYSTEM = 7
     STATUS_ABORTED_SYSTEM = 8
 
-    def abort(self, client):
+    def abort(self):
         """Abort test.
-
-        Args:
-            client: API client instance.
 
         Returns:
             True if abort has been acknowledged and test is in a test where
             it's possible to abort, False otherwise.
         """
-        response = client.post(self.__class__._path(resource_id=self.id,
-                               action='abort'))
+        response = self.client.post(self.__class__._path(resource_id=self.id,
+                                    action='abort'))
         if 409 == response.status_code:
             return False
         return True
 
-    def is_done(self, client):
+    def is_done(self):
         """Check whether test is done or not.
-
-        Args:
-            client: API client instance.
 
         Returns:
             True if test has completed, otherwise False.
@@ -327,7 +321,7 @@ class Test(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
         Raises:
             ResponseParseError: Unable to parse response (sync call) from API.
         """
-        self.sync(client)
+        self.sync()
         if self.status in [Test.STATUS_FINISHED, Test.STATUS_TIMED_OUT,
                            Test.STATUS_ABORTED_USER,
                            Test.STATUS_ABORTED_SYSTEM]:
@@ -345,7 +339,7 @@ class Test(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
         """
         if not result_ids:
             result_ids = [TestResult.USER_LOAD_TIME, TestResult.ACTIVE_USERS]
-        return _TestResultStream(self.id, result_ids)
+        return _TestResultStream(self, result_ids)
 
     @classmethod
     def status_code_to_text(cls, status_code):
@@ -389,8 +383,8 @@ class TestConfig(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
     SBU = 'sbu'
     VU = 'vu'
 
-    def __init__(self, **kwargs):
-        super(TestConfig, self).__init__(**kwargs)
+    def __init__(self, client, **kwargs):
+        super(TestConfig, self).__init__(client, **kwargs)
         self._set_default_config()
 
     def add_user_scenario(self, user_scenario,
@@ -440,7 +434,7 @@ class TestConfig(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
             raise ValueError(u"'user_type' must be either 'sbu' or 'vu'")
         self.config['user_type'] = value
 
-    def start_test(self, client):
+    def start_test(self):
         """Start test based on this test config.
 
         Args:
@@ -452,7 +446,7 @@ class TestConfig(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
         Raises:
             ResponseParseError: Unable to parse response from API.
         """
-        return self.__class__.start_test_from_id(client, self.id)
+        return self.__class__.start_test_from_id(self.client, self.id)
 
     @classmethod
     def start_test_from_id(cls, client, test_config_id):
@@ -490,12 +484,38 @@ class TestConfig(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
 class _TestResultStream(Resource):
     resource_name = 'tests'
 
-    def __init__(self, test_id, result_ids):
-        self.test_id = test_id
+    def __init__(self, test, result_ids):
+        self.test = test
         self.result_ids = result_ids
         self._last = dict([(rid, {'offset': -1}) for rid in result_ids])
         self._last_two = []
         self._series = {}
+
+    def __call__(self, poll_rate=3):
+        while not self.test.is_done() and not self.is_done():
+            q = ['%s|%d' % (rid, self._last.get(rid, {}).get('offset', -1))
+                 for rid in self.result_ids]
+            path = self.__class__._path(
+                resource_id=self.test.id, action='results')
+            response = self.test.client.get(path, params={'ids': ','.join(q)})
+            results = response.json()
+            for rid, data in results.iteritems():
+                try:
+                    self._last[rid] = data[-1]
+                except IndexError:
+                    continue
+                if rid not in self._series:
+                    self._series[rid] = []
+                self._series[rid].extend(data)
+
+            if 2 == len(self._last_two):
+                self._last_two.pop(0)
+            self._last_two.append(self._last)
+            yield self._last
+            sleep(poll_rate)
+
+    def __iter__(self):
+        return self.__call__()
 
     def is_done(self):
         if 2 != len(self._last_two):
@@ -510,26 +530,6 @@ class _TestResultStream(Resource):
     @property
     def series(self):
         return self._series
-
-    def poll(self, client):
-        q = ['%s|%d' % (rid, self._last.get(rid, {}).get('offset', -1))
-             for rid in self.result_ids]
-        response = client.get(self.__class__._path(resource_id=self.test_id,
-                                                   action='results'),
-                              params={'ids': ','.join(q)})
-        results = response.json()
-        for rid, data in results.iteritems():
-            try:
-                self._last[rid] = data[-1]
-            except IndexError:
-                continue
-            if rid not in self._series:
-                self._series[rid] = []
-            self._series[rid].extend(data)
-
-        if 2 == len(self._last_two):
-            self._last_two.pop(0)
-        self._last_two.append(self._last)
 
 
 class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
@@ -548,8 +548,12 @@ class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
     def clone(self, client, name=None):
         self.post(client, data={})
 
+    def validate(self):
+        return self.client.create_user_scenario_validation(
+            {'user_scenario_id': self.id})
 
-class UserScenarioValidation(Resource, ListMixin, GetMixin, CreateMixin):
+
+class UserScenarioValidation(Resource, GetMixin, CreateMixin):
     resource_name = 'user-scenario-validations'
     fields = {
         'id': IntegerField,
@@ -560,3 +564,94 @@ class UserScenarioValidation(Resource, ListMixin, GetMixin, CreateMixin):
         'started': DateTimeField,
         'ended': DateTimeField
     }
+
+    # Validation status codes
+    STATUS_QUEUED = 0
+    STATUS_INITIALIZING = 1
+    STATUS_RUNNING = 2
+    STATUS_FINISHED = 3
+    STATUS_FAILED = 4
+
+    def is_done(self):
+        """Check whether validation is done or not.
+
+        Returns:
+            True if validation has completed, otherwise False.
+
+        Raises:
+            ResponseParseError: Unable to parse response (sync call) from API.
+        """
+        self.sync()
+        if self.status in [UserScenarioValidation.STATUS_FINISHED,
+                           UserScenarioValidation.STATUS_FAILED]:
+            return True
+        return False
+
+    def result_stream(self):
+        """Get access to result stream.
+
+        Returns:
+            User scenario validation result stream object.
+        """
+        return _UserScenarioValidationResultStream(self)
+
+    @classmethod
+    def status_code_to_text(cls, status_code):
+        if UserScenarioValidation.STATUS_QUEUED == status_code:
+            return 'queued'
+        elif UserScenarioValidation.STATUS_INITIALIZING == status_code:
+            return 'initializing'
+        elif UserScenarioValidation.STATUS_RUNNING == status_code:
+            return 'running'
+        elif UserScenarioValidation.STATUS_FINISHED == status_code:
+            return 'finished'
+        elif UserScenarioValidation.STATUS_FAILED == status_code:
+            return 'failed'
+        return 'unknown'
+
+
+class _UserScenarioValidationResultStream(Resource):
+    resource_name = 'user-scenario-validations'
+
+    def __init__(self, validation):
+        self.validation = validation
+        self.last_offset = -1
+        self.results = []
+        self.status = UserScenarioValidation.STATUS_QUEUED
+        self.status_text = UserScenarioValidation.status_code_to_text(
+            self.status)
+
+    def __call__(self, poll_rate=3):
+        while not self.is_done():
+            path = self.__class__._path(
+                resource_id=self.validation.id, action='results')
+            response = self.validation.client.get(
+                path, params={'offset': self.last_offset})
+            results = response.json()
+            self.status = results.get('status', self.status)
+            self.status_text = UserScenarioValidation.status_code_to_text(
+                self.status)
+            if 'results' in results:
+                for data in results['results']:
+                    self.last_offset = data['offset']
+                    yield data
+                self.results.extend(results['results'])
+                sleep(poll_rate)
+
+        # Sync user scenario validation model to update status.
+        self.validation.sync()
+
+
+    def __iter__(self):
+        return self.__call__()
+
+    def is_done(self):
+        """Check whether validation is done or not.
+
+        Returns:
+            True if validation has completed, otherwise False.
+        """
+        if self.status in [UserScenarioValidation.STATUS_FINISHED,
+                           UserScenarioValidation.STATUS_FAILED]:
+            return True
+        return False
