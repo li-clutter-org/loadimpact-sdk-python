@@ -1,16 +1,28 @@
 # coding=utf-8
 
+import json
 import requests
 import unittest
 
 from loadimpact.clients import ApiTokenClient, Client
 from loadimpact.exceptions import (
     ApiError, ConnectionError, HTTPError, TimeoutError)
+from loadimpact.resources import (
+    DataStore, Test, TestConfig, UserScenario, UserScenarioValidation)
+from StringIO import StringIO
 
 
 class MockRequestsResponse(object):
-    def __init__(self, status_code=200):
+    def __init__(self, status_code=200, **kwargs):
         self.status_code = status_code
+        self.kwargs = kwargs
+        for k, v in kwargs.iteritems():
+            setattr(self, k, v)
+
+    def json(self):
+        d = self.kwargs
+        d.update({'status_code': self.status_code})
+        return d
 
 
 class MockClient(Client):
@@ -27,7 +39,10 @@ class MockClient(Client):
         self.last_request_kwargs = kwargs
         if 'raise_exception_cls' in self.kwargs:
             raise self.kwargs.get('raise_exception_cls')
-        return MockRequestsResponse()
+        nkwargs = {}
+        if kwargs.get('data'):
+            nkwargs = kwargs['data']
+        return MockRequestsResponse(**nkwargs)
 
 
 class MockApiTokenClient(ApiTokenClient):
@@ -46,6 +61,34 @@ class MockApiTokenClient(ApiTokenClient):
 
 
 class TestClientsClient(unittest.TestCase):
+    def test_create_data_store(self):
+        client = MockClient()
+        data = {
+            'name': 'Test Data Store',
+            'fromline': 0,
+            'separator': 'comma',
+            'delimeter': 'double'
+        }
+        csv = 'column1,column2,column3'
+        data_store = client.create_data_store(data, StringIO(csv))
+        url = MockClient.api_base_url + DataStore.resource_name
+
+        self.assertEquals(client.last_request_method, 'post')
+        self.assertEquals(client.last_request_args[0], url)
+        self.assertEquals(client.last_request_kwargs['data']['name'],
+                          data['name'])
+        self.assertEquals(client.last_request_kwargs['data']['fromline'],
+                          data['fromline'])
+        self.assertEquals(client.last_request_kwargs['data']['separator'],
+                          data['separator'])
+        self.assertEquals(client.last_request_kwargs['data']['delimeter'],
+                          data['delimeter'])
+        self.assertEquals(client.last_request_kwargs['files']['file'].read(),
+                          StringIO(csv).read())
+        self.assertEquals(data_store.name, data['name'])
+        self.assertEquals(data_store.status, DataStore.STATUS_QUEUED)
+        self.assertEquals(data_store.rows, 0)
+
     def test_requests_httperror_exceptions_wrapping(self):
         self._exceptions_wrapping_all_http_verbs(
             requests.exceptions.HTTPError, HTTPError)
