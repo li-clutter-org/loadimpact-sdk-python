@@ -491,18 +491,34 @@ class _TestResultStream(Resource):
         self._last_two = []
         self._series = {}
 
-    def __call__(self, poll_rate=3):
-        while not self.test.is_done() and not self.is_done():
+    @property
+    def series(self):
+        return self._series
+
+    def __call__(self, poll_rate=3, post_polls=5):
+        def is_done(self):
+            if not self.test.is_done() or not self.is_done():
+                return False
+            return True
+
+        done = False
+        while not done or 0 < post_polls:
+            done = is_done(self)
+            if done:
+                post_polls = post_polls - 1
             q = ['%s|%d' % (rid, self._last.get(rid, {}).get('offset', -1))
                  for rid in self.result_ids]
             path = self.__class__._path(
                 resource_id=self.test.id, action='results')
-            response = self.test.client.get(path, params={'ids': ','.join(q)})
+            response = self._get(path, {'ids': ','.join(q)})
             results = response.json()
+            change = {}
             for rid, data in results.iteritems():
                 try:
-                    self._last[rid] = data[-1]
-                except IndexError:
+                    if data[0]['offset'] > self._last[rid]['offset']:
+                        change[rid] = data[-1]
+                        self._last[rid] = data[-1]
+                except (IndexError, KeyError):
                     continue
                 if rid not in self._series:
                     self._series[rid] = []
@@ -511,7 +527,8 @@ class _TestResultStream(Resource):
             if 2 == len(self._last_two):
                 self._last_two.pop(0)
             self._last_two.append(self._last)
-            yield self._last
+            if change:
+                yield change
             sleep(poll_rate)
 
     def __iter__(self):
@@ -527,9 +544,8 @@ class _TestResultStream(Resource):
             return self._last
         return self._last[result_id]
 
-    @property
-    def series(self):
-        return self._series
+    def _get(self, path, params):
+        return self.test.client.get(path, params=params)
 
 
 class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
