@@ -3,7 +3,6 @@
 
 import optparse
 import sys
-import time
 import traceback
 
 from loadimpact import (
@@ -26,17 +25,21 @@ def start_test(client, test_config_id):
         TestResult.result_id_from_name(TestResult.ACTIVE_USERS,
                                        load_zone_id=world_id)])
 
-    print("Starting test #%d (view test: %s)..." % (test.id, test.public_url))
-    while not test.is_done(client):
-        stream.poll(client)
-        print(stream.last())
-        time.sleep(3)
-    for i in range(10):  # Wait for last data to arrive!
-        stream.poll(client)
-        print(stream.last())
-        time.sleep(3)
-    print("Test completed with status '%s'"
-          % (Test.status_code_to_text(test.status)))
+    try:
+        print("Starting test #%d (view test: %s)..." % (test.id, test.public_url))
+        try:
+            for data in stream:
+                print(data)  
+        except KeyboardInterrupt:
+            print("Aborting test.")
+            test.abort()
+            for data in stream:
+                print(data)
+        print("Test completed with status '%s'"
+              % (Test.status_code_to_text(test.status)))
+    except ApiError, e:
+        print("Aborting test, unhandled error: %s" % str(e))
+        test.abort()
 
 
 def usage():
