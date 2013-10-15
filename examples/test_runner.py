@@ -6,7 +6,7 @@ import sys
 import time
 import traceback
 
-from loadimpactsdk import (
+from loadimpact import (
     ApiTokenClient, ApiError, LoadZone, Test, TestConfig, TestResult,
     __version__ as li_sdk_version)
 

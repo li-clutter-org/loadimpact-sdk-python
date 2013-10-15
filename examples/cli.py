@@ -6,7 +6,7 @@ import optparse
 import sys
 import traceback
 
-from loadimpactsdk import (
+from loadimpact import (
     ApiTokenClient, ApiError, DataStore, LoadZone, TestConfig, UserScenario,
     __version__ as li_sdk_version)
 
