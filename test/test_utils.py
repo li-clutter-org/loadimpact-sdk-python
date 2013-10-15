@@ -2,7 +2,84 @@
 
 import unittest
 
-from loadimpact.utils import UTC
+from loadimpact.utils import is_dict_different, UTC
+
+
+class TestUtilsFunctions(unittest.TestCase):
+    def test_is_dict_different_false(self):
+        d1 = {
+            'int': 0,
+            'string': "I'm a string",
+            'float': 0.12345,
+            'dict': {'key': 'value'}
+        }
+        d2 = {
+            'int': 0,
+            'string': "I'm a string",
+            'float': 0.12345,
+            'dict': {'key': 'value'}
+        }
+        self.assertFalse(is_dict_different(d1, d2))
+
+    def test_is_dict_different_true_int(self):
+        d1 = {
+            'int': 0,
+            'string': "I'm a string",
+            'float': 0.12345,
+            'dict': {'key': 'value'}
+        }
+        d2 = {
+            'int': 1,
+            'string': "I'm a string",
+            'float': 0.12345,
+            'dict': {'key': 'value'}
+        }
+        self.assertTrue(is_dict_different(d1, d2))
+
+    def test_is_dict_different_true_string(self):
+        d1 = {
+            'int': 0,
+            'string': "I'm a string",
+            'float': 0.12345,
+            'dict': {'key': 'value'}
+        }
+        d2 = {
+            'int': 0,
+            'string': "I'm a string2",
+            'float': 0.12345,
+            'dict': {'key': 'value'}
+        }
+        self.assertTrue(is_dict_different(d1, d2))
+
+    def test_is_dict_different_true_float(self):
+        d1 = {
+            'int': 0,
+            'string': "I'm a string",
+            'float': 0.12345,
+            'dict': {'key': 'value'}
+        }
+        d2 = {
+            'int': 0,
+            'string': "I'm a string",
+            'float': 0.123456,
+            'dict': {'key': 'value'}
+        }
+        self.assertTrue(is_dict_different(d1, d2))
+
+    def test_is_dict_different_true_dict(self):
+        d1 = {
+            'int': 0,
+            'string': "I'm a string",
+            'float': 0.12345,
+            'dict': {'key': 'value'}
+        }
+        d2 = {
+            'int': 0,
+            'string': "I'm a string",
+            'float': 0.12345,
+            'dict': {'key': 'value2'}
+        }
+        self.assertTrue(is_dict_different(d1, d2))
 
 
 class TestUtilsUTC(unittest.TestCase):
