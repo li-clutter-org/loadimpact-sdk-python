@@ -1,5 +1,21 @@
 # coding=utf-8
 
+"""
+Copyright 2013 Load Impact
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 import hashlib
 import json
 import unittest
@@ -7,7 +23,8 @@ import unittest
 from loadimpact.clients import Client
 from loadimpact.fields import IntegerField
 from loadimpact.resources import (
-    DataStore, LoadZone, Resource, Test, TestConfig, TestResult, UserScenario)
+    DataStore, LoadZone, Resource, Test, TestConfig, TestResult, UserScenario,
+    UserScenarioValidation, _UserScenarioValidationResultStream)
 
 
 class MockRequestsResponse(object):
@@ -104,11 +121,13 @@ class TestResourcesDataStore(unittest.TestCase):
 
 
 class TestResourcesTest(unittest.TestCase):
+    def setUp(self):
+        self.client = MockClient()
+
     def test_abort(self):
-        client = MockClient()
-        test = Test(client)
+        test = Test(self.client)
         result = test.abort()
-        self.assertEquals(client.last_request_method, 'post')
+        self.assertEquals(self.client.last_request_method, 'post')
         self.assertTrue(result)
 
     def test_abort_failed_409(self):
@@ -117,6 +136,41 @@ class TestResourcesTest(unittest.TestCase):
         result = test.abort()
         self.assertEquals(client.last_request_method, 'post')
         self.assertFalse(result)
+
+    def test_is_done(self):
+        test = Test(self.client)
+        self.assertFalse(test.is_done())
+        self.assertEquals(self.client.last_request_method, 'get')
+
+    def test_is_done_status_created(self):
+        self._check_is_done(Test.STATUS_CREATED, False)
+
+    def test_is_done_status_queued(self):
+        self._check_is_done(Test.STATUS_QUEUED, False)
+
+    def test_is_done_status_initializing(self):
+        self._check_is_done(Test.STATUS_INITIALIZING, False)
+
+    def test_is_done_status_running(self):
+        self._check_is_done(Test.STATUS_RUNNING, False)
+
+    def test_is_done_status_finished(self):
+        self._check_is_done(Test.STATUS_FINISHED, True)
+
+    def test_is_done_status_timed_out(self):
+        self._check_is_done(Test.STATUS_TIMED_OUT, True)
+
+    def test_is_done_status_aborting_user(self):
+        self._check_is_done(Test.STATUS_ABORTING_USER, False)
+
+    def test_is_done_status_aborted_user(self):
+        self._check_is_done(Test.STATUS_ABORTED_USER, True)
+
+    def test_is_done_status_aborting_system(self):
+        self._check_is_done(Test.STATUS_ABORTING_SYSTEM, False)
+
+    def test_is_done_status_aborted_system(self):
+        self._check_is_done(Test.STATUS_ABORTED_SYSTEM, True)
 
     def test_status_code_to_text(self):
         self.assertEquals(
@@ -145,6 +199,12 @@ class TestResourcesTest(unittest.TestCase):
         self.assertEquals(
             Test.status_code_to_text(0xffffffff),
             'unknown')
+
+    def _check_is_done(self, status, expected):
+        test = Test(self.client)
+        test.status = status
+        self.assertEquals(test.is_done(), expected)
+        self.assertEquals(self.client.last_request_method, 'get')
 
 
 class TestResourcesTestResult(unittest.TestCase):
@@ -226,6 +286,15 @@ class TestResourcesTestConfig(unittest.TestCase):
             c.user_type = 'something bad'
         self.assertRaises(ValueError, assign_bad_user_type)
 
+    def test_clone(self):
+        name = 'Cloned Test Config'
+        test_config = TestConfig(self.client)
+        test_config_clone = test_config.clone(name)
+        self.assertEquals(self.client.last_request_method, 'post')
+        self.assertEquals(self.client.last_request_kwargs['data']['name'],
+                          name)
+        self.assertTrue(isinstance(test_config_clone, TestConfig))
+
     def test_update_with_dict(self):
         name_change = 'Test Config'
         test_config = TestConfig(self.client)
@@ -252,6 +321,15 @@ class TestResourcesUserScenario(unittest.TestCase):
     def setUp(self):
         self.client = MockClient()
 
+    def test_clone(self):
+        name = 'Cloned User Scenario'
+        user_scenario = UserScenario(self.client)
+        user_scenario_clone = user_scenario.clone(name)
+        self.assertEquals(self.client.last_request_method, 'post')
+        self.assertEquals(self.client.last_request_kwargs['data']['name'],
+                          name)
+        self.assertTrue(isinstance(user_scenario_clone, UserScenario))
+
     def test_update_with_dict(self):
         name_change = 'Test User Scenario'
         user_scenario = UserScenario(self.client)
@@ -272,3 +350,55 @@ class TestResourcesUserScenario(unittest.TestCase):
         self.assertEquals(self.client.last_request_kwargs['data']['name'],
                           name_change)
         self.assertEquals(user_scenario.name, name_change)
+
+
+class TestResourcesUserScenarioValidation(unittest.TestCase):
+    def setUp(self):
+        self.client = MockClient()
+
+    def test_is_done(self):
+        validation = UserScenarioValidation(self.client)
+        self.assertFalse(validation.is_done())
+        self.assertEquals(self.client.last_request_method, 'get')
+
+    def test_is_done_status_queued(self):
+        self._check_is_done(UserScenarioValidation.STATUS_QUEUED, False)
+
+    def test_is_done_status_initializing(self):
+        self._check_is_done(UserScenarioValidation.STATUS_INITIALIZING, False)
+
+    def test_is_done_status_running(self):
+        self._check_is_done(UserScenarioValidation.STATUS_RUNNING, False)
+
+    def test_is_done_status_finished(self):
+        self._check_is_done(UserScenarioValidation.STATUS_FINISHED, True)
+
+    def test_is_done_status_failed(self):
+        self._check_is_done(UserScenarioValidation.STATUS_FAILED, True)
+
+    def test_status_code_to_text(self):
+        self.assertEquals(UserScenarioValidation.status_code_to_text(
+            UserScenarioValidation.STATUS_QUEUED), 'queued')
+        self.assertEquals(UserScenarioValidation.status_code_to_text(
+            UserScenarioValidation.STATUS_INITIALIZING), 'initializing')
+        self.assertEquals(UserScenarioValidation.status_code_to_text(
+            UserScenarioValidation.STATUS_RUNNING), 'running')
+        self.assertEquals(UserScenarioValidation.status_code_to_text(
+            UserScenarioValidation.STATUS_FINISHED), 'finished')
+        self.assertEquals(UserScenarioValidation.status_code_to_text(
+            UserScenarioValidation.STATUS_FAILED), 'failed')
+        self.assertEquals(UserScenarioValidation.status_code_to_text(
+            0xffffffff), 'unknown')
+
+    def test_result_stream(self):
+        validation = UserScenarioValidation(self.client)
+        result_stream = validation.result_stream()
+        self.assertTrue(isinstance(
+            result_stream, _UserScenarioValidationResultStream))
+        self.assertEquals(result_stream.validation, validation)
+
+    def _check_is_done(self, status, expected):
+        validation = UserScenarioValidation(self.client)
+        validation.status = status
+        self.assertEquals(validation.is_done(), expected)
+        self.assertEquals(self.client.last_request_method, 'get')
