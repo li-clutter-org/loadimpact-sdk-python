@@ -216,7 +216,7 @@ class Client(object):
         else:
             if not kwargs['headers']:
                 kwargs['headers'] = {}
-            kwargs['headers']['user-agent'] = headers['user-agent']
+            kwargs['headers'].update(headers)
         kwargs['timeout'] = self.timeout
         kwargs = self._prepare_requests_kwargs(kwargs)
         return self._requests_request(method, *args, **kwargs)
@@ -233,7 +233,7 @@ class ApiTokenClient(Client):
         super(ApiTokenClient, self).__init__(*args, **kwargs)
         if not api_token:
             try:
-                self.api_token = os.environ['LOADIMPACT_API_TOKEN']
+                api_token = os.environ['LOADIMPACT_API_TOKEN']
             except KeyError:
                 raise MissingApiTokenError(u"An API token must be specified "
                                            u"either as the first argument to "
