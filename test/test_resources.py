@@ -59,6 +59,17 @@ class TestResourcesResource(unittest.TestCase):
     def test_setattr(self):
         pass
 
+    def test__path(self):
+        self.assertEquals(MockResource._path(), MockResource.resource_name)
+        self.assertEquals(MockResource._path(resource_id=None),
+                          MockResource.resource_name)
+        self.assertEquals(MockResource._path(resource_id=0),
+                          '%s/%s' % (MockResource.resource_name, 0))
+        self.assertEquals(MockResource._path(resource_id=1),
+                          '%s/%s' % (MockResource.resource_name, 1))
+        self.assertEquals(MockResource._path(resource_id=1, action='action'),
+                          '%s/%s/%s' % (MockResource.resource_name, 1, 'action'))
+
 
 class TestResourcesTestConfig(unittest.TestCase):
     def setUp(self):
