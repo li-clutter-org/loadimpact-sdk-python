@@ -66,6 +66,24 @@ class TestUtilsFunctions(unittest.TestCase):
         }
         self.assertTrue(is_dict_different(d1, d2))
 
+    def test_is_dict_different_false_float_epsilon(self):
+        d1 = {
+            'float': 0.123457
+        }
+        d2 = {
+            'float': 0.123456
+        }
+        self.assertFalse(is_dict_different(d1, d2, epsilon=0.00001))
+
+    def test_is_dict_different_true_float_epsilon(self):
+        d1 = {
+            'float': 0.123457
+        }
+        d2 = {
+            'float': 0.123456
+        }
+        self.assertTrue(is_dict_different(d1, d2, epsilon=0.0000001))
+
     def test_is_dict_different_true_dict(self):
         d1 = {
             'int': 0,
