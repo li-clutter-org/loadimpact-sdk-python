@@ -16,8 +16,9 @@ def is_dict_different(d1, d2, epsilon=0.00000000001):
     removed = s2 - intersect
     changed = []
     for o in intersect:
-        if isinstance(s2, float) and abs(d2[o] - d1[o]) > epsilon:
-            changed.append(o)
+        if isinstance(d2[o], float):
+            if abs(d2[o] - d1[o]) > epsilon:
+                changed.append(o)
         elif d2[o] != d1[o]:
             changed.append(o)
     return (0 < len(added) or 0 < len(removed) or 0 < len(set(changed)))
