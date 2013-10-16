@@ -1,5 +1,21 @@
 # coding=utf-8
 
+"""
+Copyright 2013 Load Impact
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 __all__ = ['DataStore', 'LoadZone', 'Test', 'TestConfig', 'TestResult',
            'UserScenario', 'UserScenarioValidation']
 
@@ -513,6 +529,18 @@ class TestConfig(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
             raise ValueError(u"'user_type' must be either 'sbu' or 'vu'")
         self.config['user_type'] = value
 
+    def clone(self, name):
+        headers = {'Content-Type': self.__class__.create_content_type}
+        response = self.client.post(
+            self.__class__._path(resource_id=self.id, action='clone'),
+            headers=headers, data={'name': name})
+        try:
+            instance = self.__class__(self.client)
+            instance._set_fields(response.json())
+            return instance
+        except CoercionError, e:
+            raise ResponseParseError(e)
+
     def start_test(self):
         """Start test based on this test config.
 
@@ -573,8 +601,17 @@ class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
         'updated': DateTimeField
     }
 
-    def clone(self, client, name=None):
-        self.post(client, data={})
+    def clone(self, name):
+        headers = {'Content-Type': self.__class__.create_content_type}
+        response = self.client.post(
+            self.__class__._path(resource_id=self.id, action='clone'),
+            headers=headers, data={'name': name})
+        try:
+            instance = self.__class__(self.client)
+            instance._set_fields(response.json())
+            return instance
+        except CoercionError, e:
+            raise ResponseParseError(e)
 
     def validate(self):
         return self.client.create_user_scenario_validation(
