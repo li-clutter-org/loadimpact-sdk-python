@@ -26,8 +26,7 @@ class MockRequestsResponse(object):
             setattr(self, k, v)
 
     def json(self):
-        d = self.kwargs
-        return [d] if self.expecting_list else d
+        return [self.kwargs] if self.expecting_list else self.kwargs
 
 
 class MockClient(Client):
