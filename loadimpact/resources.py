@@ -6,7 +6,7 @@ __all__ = ['DataStore', 'LoadZone', 'Test', 'TestConfig', 'TestResult',
 import json
 import hashlib
 
-from exceptions import CoercionError, ResponseParseError
+from exceptions import CoercionError, ConflictError, ResponseParseError
 from fields import (
     DateTimeField, DictField, Field, IntegerField, ListField, StringField,
     UnicodeField)
@@ -384,9 +384,10 @@ class Test(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
             True if abort has been acknowledged and test is in a test where
             it's possible to abort, False otherwise.
         """
-        response = self.client.post(self.__class__._path(resource_id=self.id,
-                                    action='abort'))
-        if 409 == response.status_code:
+        try:
+            self.client.post(self.__class__._path(resource_id=self.id,
+                                                  action='abort'))
+        except ConflictError:
             return False
         return True
 
