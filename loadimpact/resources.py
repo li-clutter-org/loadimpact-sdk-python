@@ -139,10 +139,11 @@ class ListMixin(object):
         try:
             resources = []
             l = response.json()
-            for r in l:
-                instance = cls(client)
-                instance._set_fields(r)
-                resources.append(instance)
+            if isinstance(l, list):
+                for r in l:
+                    instance = cls(client)
+                    instance._set_fields(r)
+                    resources.append(instance)
             return resources
         except CoercionError, e:
             raise ResponseParseError(e)
