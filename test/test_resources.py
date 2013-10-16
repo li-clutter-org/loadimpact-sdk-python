@@ -1,29 +1,31 @@
 # coding=utf-8
 
+import hashlib
 import json
 import unittest
 
 from loadimpact.clients import Client
 from loadimpact.fields import IntegerField
-from loadimpact.resources import Resource, TestConfig, UserScenario
+from loadimpact.resources import (
+    DataStore, LoadZone, Resource, Test, TestConfig, TestResult, UserScenario)
 
 
 class MockRequestsResponse(object):
     def __init__(self, status_code=200, **kwargs):
+        self.url = 'http://example.com/'
         self.status_code = status_code
         self.kwargs = kwargs
         for k, v in kwargs.iteritems():
             setattr(self, k, v)
 
     def json(self):
-        d = self.kwargs
-        d.update({'status_code': self.status_code})
-        return d
+        return self.kwargs
 
 
 class MockClient(Client):
-    def __init__(self, **kwargs):
+    def __init__(self, response_status_code=200, **kwargs):
         super(MockClient, self).__init__()
+        self.response_status_code = response_status_code
         self.kwargs = kwargs
         self.last_request_method = None
         self.last_request_args = None
@@ -41,7 +43,8 @@ class MockClient(Client):
                 nkwargs = kwargs['data']
             elif isinstance(kwargs['data'], str):
                 nkwargs = json.loads(kwargs['data'])
-        return MockRequestsResponse(**nkwargs)
+        return MockRequestsResponse(status_code=self.response_status_code,
+                                    **nkwargs)
 
 
 class MockResource(Resource):
@@ -70,6 +73,134 @@ class TestResourcesResource(unittest.TestCase):
                           '%s/%s' % (MockResource.resource_name, 1))
         self.assertEquals(MockResource._path(resource_id=1, action='action'),
                           '%s/%s/%s' % (MockResource.resource_name, 1, 'action'))
+
+
+class TestResourcesDataStore(unittest.TestCase):
+    def setUp(self):
+        self.client = MockClient()
+
+    def test_has_conversion_finished(self):
+        ds = DataStore(self.client)
+        self.assertFalse(ds.has_conversion_finished())
+        self.assertEquals(self.client.last_request_method, 'get')
+
+    def test_has_conversion_finished_status_queued(self):
+        self._check_has_conversion_finished(DataStore.STATUS_QUEUED, False)
+
+    def test_has_conversion_finished_status_converting(self):
+        self._check_has_conversion_finished(DataStore.STATUS_CONVERTING, False)
+
+    def test_has_conversion_finished_status_finished(self):
+        self._check_has_conversion_finished(DataStore.STATUS_FINISHED, True)
+
+    def test_has_conversion_finished_status_failed(self):
+        self._check_has_conversion_finished(DataStore.STATUS_FAILED, True)
+
+    def _check_has_conversion_finished(self, status, expected):
+        ds = DataStore(self.client)
+        ds.status = status
+        self.assertEquals(ds.has_conversion_finished(), expected)
+        self.assertEquals(self.client.last_request_method, 'get')
+
+
+class TestResourcesTest(unittest.TestCase):
+    def test_abort(self):
+        client = MockClient()
+        test = Test(client)
+        result = test.abort()
+        self.assertEquals(client.last_request_method, 'post')
+        self.assertTrue(result)
+
+    def test_abort_failed_409(self):
+        client = MockClient(response_status_code=409)
+        test = Test(client)
+        result = test.abort()
+        self.assertEquals(client.last_request_method, 'post')
+        self.assertFalse(result)
+
+    def test_status_code_to_text(self):
+        self.assertEquals(
+            Test.status_code_to_text(Test.STATUS_CREATED), 'created')
+        self.assertEquals(
+            Test.status_code_to_text(Test.STATUS_QUEUED), 'queued')
+        self.assertEquals(
+            Test.status_code_to_text(Test.STATUS_INITIALIZING), 'initializing')
+        self.assertEquals(
+            Test.status_code_to_text(Test.STATUS_RUNNING), 'running')
+        self.assertEquals(
+            Test.status_code_to_text(Test.STATUS_FINISHED), 'finished')
+        self.assertEquals(
+            Test.status_code_to_text(Test.STATUS_TIMED_OUT), 'timed out')
+        self.assertEquals(
+            Test.status_code_to_text(Test.STATUS_ABORTING_USER),
+            'aborting (by user)')
+        self.assertEquals(Test.status_code_to_text(Test.STATUS_ABORTED_USER),
+            'aborted (by user)')
+        self.assertEquals(
+            Test.status_code_to_text(Test.STATUS_ABORTING_SYSTEM),
+            'aborting (by system)')
+        self.assertEquals(
+            Test.status_code_to_text(Test.STATUS_ABORTED_SYSTEM),
+            'aborted (by system)')
+        self.assertEquals(
+            Test.status_code_to_text(0xffffffff),
+            'unknown')
+
+
+class TestResourcesTestResult(unittest.TestCase):
+    def test_result_id_from_name_with_name(self):
+        self.assertEquals(TestResult.result_id_from_name('__li_user_load_time'),
+                          '__li_user_load_time')
+
+    def test_result_id_from_name_with_name_load_zone(self):
+        self.assertEquals(TestResult.result_id_from_name('__li_user_load_time',
+                                                         load_zone_id=1),
+                          '__li_user_load_time:1')
+
+    def test_result_id_from_name_with_name_load_zone_user_scenario(self):
+        self.assertEquals(TestResult.result_id_from_name('__li_user_load_time',
+                                                         load_zone_id=1,
+                                                         user_scenario_id=1),
+                          '__li_user_load_time:1:1')
+
+    def test_result_id_from_custom_metric_name(self):
+        name = 'my metric'
+        self.assertEquals(TestResult.result_id_from_custom_metric_name(name,
+                                                                       1, 1),
+                          '__custom_%s:1:1' % hashlib.md5(name).hexdigest())
+
+    def test_result_id_for_page(self):
+        name = 'my page'
+        self.assertEquals(TestResult.result_id_for_page(name, 1, 1),
+                          '__li_page%s:1:1' % hashlib.md5(name).hexdigest())
+
+    def test_result_id_for_url(self):
+        url = 'http://example.com/'
+        self.assertEquals(TestResult.result_id_for_url(url, 1, 1, 
+                                                       method='GET',
+                                                       status_code=200),
+                          '__li_url%s:1:1:GET:200'
+                          % hashlib.md5(url).hexdigest())
+
+
+class TestResourcesLoadZone(unittest.TestCase):
+    def test_name_to_id(self):
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD), 1)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_US_ASHBURN), 11)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_US_PALOALTO), 12)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_IE_DUBLIN), 13)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_SG_SINGAPORE), 14)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_JP_TOKYO), 15)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_US_PORTLAND), 22)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_BR_SAOPAULO), 23)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_AU_SYDNEY), 25)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.RACKSPACE_US_CHICAGO), 26)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.RACKSPACE_US_DALLAS), 27)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.RACKSPACE_UK_LONDON), 28)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.RACKSPACE_AU_SYDNEY), 29)
+
+    def test_name_to_id_exception(self):
+        self.assertRaises(ValueError, LoadZone.name_to_id, 'unknown')
 
 
 class TestResourcesTestConfig(unittest.TestCase):
