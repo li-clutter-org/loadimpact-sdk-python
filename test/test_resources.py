@@ -95,6 +95,27 @@ class TestResourcesTestConfig(unittest.TestCase):
             c.user_type = 'something bad'
         self.assertRaises(ValueError, assign_bad_user_type)
 
+    def test_update_with_dict(self):
+        name_change = 'Test Config'
+        test_config = TestConfig(self.client)
+        test_config.update({'name': name_change})
+
+        self.assertEquals(self.client.last_request_method, 'put')
+        self.assertEquals(self.client.last_request_kwargs['data']['name'],
+                          name_change)
+        self.assertEquals(test_config.name, name_change)
+
+    def test_update_with_attribute(self):
+        name_change = 'Test Config'
+        test_config = TestConfig(self.client)
+        test_config.name = name_change
+        test_config.update()
+
+        self.assertEquals(self.client.last_request_method, 'put')
+        self.assertEquals(self.client.last_request_kwargs['data']['name'],
+                          name_change)
+        self.assertEquals(test_config.name, name_change)
+
 
 class TestResourcesUserScenario(unittest.TestCase):
     def setUp(self):
