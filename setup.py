@@ -34,7 +34,7 @@ setup(
     packages=['loadimpact'],
     url='http://developers.loadimpact.com/',
     license='LICENSE.txt',
-    description="The Load Impact SDK provides access to Load Impact's cloud-based load testing platform",
+    description="The Load Impact SDK provides access to Load Impact's cloud-based performance testing platform",
     install_requires=['requests'],
     classifiers=[
         'Intended Audience :: Developers',
