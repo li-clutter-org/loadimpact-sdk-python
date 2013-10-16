@@ -4,6 +4,7 @@ import json
 import unittest
 
 from loadimpact.clients import Client
+from loadimpact.fields import IntegerField
 from loadimpact.resources import Resource, TestConfig, UserScenario
 
 
@@ -53,11 +54,11 @@ class MockResource(Resource):
 
 
 class TestResourcesResource(unittest.TestCase):
-    def test_getattr(self):
-        pass
-
-    def test_setattr(self):
-        pass
+    def test___getattr__(self):
+        r = MockResource(None, IntegerField, 0)
+        def raises():
+            r.field2
+        self.assertRaises(AttributeError, raises)
 
     def test__path(self):
         self.assertEquals(MockResource._path(), MockResource.resource_name)
