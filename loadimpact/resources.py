@@ -433,7 +433,12 @@ class Test(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
             Test result stream object.
         """
         if not result_ids:
-            result_ids = [TestResult.USER_LOAD_TIME, TestResult.ACTIVE_USERS]
+            result_ids = [TestResult.result_id_from_name(
+                TestResult.USER_LOAD_TIME,
+                load_zone_id=LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD)),
+             TestResult.result_id_from_name(
+                TestResult.ACTIVE_USERS,
+                load_zone_id=LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD))]
         return self.__class__.stream_class(self, result_ids)
 
     @classmethod
