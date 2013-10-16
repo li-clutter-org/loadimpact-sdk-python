@@ -35,15 +35,11 @@ class Resource(object):
     def __setattr__(self, name, value):
         fields = self.__class__.fields
         if name in fields:
-            if not name in self._fields:
-                self._fields[name] = fields[name](value)
-            else:
-                self._fields[name].value = value
+            self._fields[name].value = value
         super(Resource, self).__setattr__(name, value)
 
     def __repr__(self):
-        return "<Resource:%s>\n%s" % (self.__class__.__name__,
-                                      pformat(self._fields))
+        return "<%s>\n%s" % (self.__class__.__name__, pformat(self._fields))
 
     @classmethod
     def _path(cls, resource_id=None, action=None):
