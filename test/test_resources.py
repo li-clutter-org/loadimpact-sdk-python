@@ -23,8 +23,9 @@ import unittest
 from loadimpact.clients import Client
 from loadimpact.fields import IntegerField
 from loadimpact.resources import (
-    DataStore, LoadZone, Resource, Test, TestConfig, TestResult, UserScenario,
-    UserScenarioValidation, _UserScenarioValidationResultStream)
+    DataStore, LoadZone, Resource, Test, TestConfig, TestResult,
+    _TestResultStream, UserScenario, UserScenarioValidation,
+    _UserScenarioValidationResultStream)
 
 
 class MockRequestsResponse(object):
@@ -120,6 +121,26 @@ class TestResourcesDataStore(unittest.TestCase):
         self.assertEquals(self.client.last_request_method, 'get')
 
 
+class TestResourcesLoadZone(unittest.TestCase):
+    def test_name_to_id(self):
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD), 1)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_US_ASHBURN), 11)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_US_PALOALTO), 12)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_IE_DUBLIN), 13)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_SG_SINGAPORE), 14)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_JP_TOKYO), 15)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_US_PORTLAND), 22)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_BR_SAOPAULO), 23)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_AU_SYDNEY), 25)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.RACKSPACE_US_CHICAGO), 26)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.RACKSPACE_US_DALLAS), 27)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.RACKSPACE_UK_LONDON), 28)
+        self.assertEquals(LoadZone.name_to_id(LoadZone.RACKSPACE_AU_SYDNEY), 29)
+
+    def test_name_to_id_exception(self):
+        self.assertRaises(ValueError, LoadZone.name_to_id, 'unknown')
+
+
 class TestResourcesTest(unittest.TestCase):
     def setUp(self):
         self.client = MockClient()
@@ -171,6 +192,20 @@ class TestResourcesTest(unittest.TestCase):
 
     def test_is_done_status_aborted_system(self):
         self._check_is_done(Test.STATUS_ABORTED_SYSTEM, True)
+
+    def test_result_stream(self):
+        test = Test(self.client)
+        result_stream = test.result_stream()
+        self.assertTrue(isinstance(
+            result_stream, _TestResultStream))
+        self.assertEquals(result_stream.test, test)
+        self.assertEquals(result_stream.result_ids,
+            [TestResult.result_id_from_name(
+                TestResult.USER_LOAD_TIME,
+                load_zone_id=LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD)),
+             TestResult.result_id_from_name(
+                TestResult.ACTIVE_USERS,
+                load_zone_id=LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD))])
 
     def test_status_code_to_text(self):
         self.assertEquals(
@@ -241,26 +276,6 @@ class TestResourcesTestResult(unittest.TestCase):
                                                        status_code=200),
                           '__li_url%s:1:1:GET:200'
                           % hashlib.md5(url).hexdigest())
-
-
-class TestResourcesLoadZone(unittest.TestCase):
-    def test_name_to_id(self):
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD), 1)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_US_ASHBURN), 11)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_US_PALOALTO), 12)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_IE_DUBLIN), 13)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_SG_SINGAPORE), 14)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_JP_TOKYO), 15)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_US_PORTLAND), 22)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_BR_SAOPAULO), 23)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_AU_SYDNEY), 25)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.RACKSPACE_US_CHICAGO), 26)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.RACKSPACE_US_DALLAS), 27)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.RACKSPACE_UK_LONDON), 28)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.RACKSPACE_AU_SYDNEY), 29)
-
-    def test_name_to_id_exception(self):
-        self.assertRaises(ValueError, LoadZone.name_to_id, 'unknown')
 
 
 class TestResourcesTestConfig(unittest.TestCase):
