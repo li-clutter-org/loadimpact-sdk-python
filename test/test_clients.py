@@ -92,6 +92,21 @@ class MockApiTokenClient(ApiTokenClient):
         return MockRequestsResponse()
 
 
+class MockApiTokenFromEnvClient(MockApiTokenClient):
+    def __init__(self, api_token_env=None, **kwargs):
+        self.api_token_env = api_token_env
+        super(MockApiTokenFromEnvClient, self).__init__(api_token=None,
+                                                        **kwargs)
+
+    def _get_api_token_from_environment(self):
+        return self.api_token_env
+
+
+class MockApiTokenFromEnvErrorClient(MockApiTokenClient):
+    def _get_api_token_from_environment(self):
+        raise KeyError
+
+
 class TestClientsClient(unittest.TestCase):
     def test_timeout(self):
         timeout = 12345
@@ -324,20 +339,13 @@ class TestClientsClient(unittest.TestCase):
 
 class TestClientsApiTokenClient(unittest.TestCase):
     def test_missing_api_token_exception(self):
-        self.assertRaises(MissingApiTokenError, MockApiTokenClient,
-                          api_token=None)
+        self.assertRaises(MissingApiTokenError, MockApiTokenFromEnvErrorClient)
 
     def test_api_token_in_env(self):
         api_token = 'test_token'
-        old = os.environ.get('LOADIMPACT_API_TOKEN')
-        os.environ['LOADIMPACT_API_TOKEN'] = api_token
-        client = MockApiTokenClient(api_token=None)
+        client = MockApiTokenFromEnvClient(api_token_env=api_token)
         client.get('some-fake-path')
         self.assertEqual(client.last_request_kwargs['auth'], (api_token, ''))
-        if old:
-            os.environ['LOADIMPACT_API_TOKEN'] = old
-        else:
-            del os.environ['LOADIMPACT_API_TOKEN']
 
     def test_api_token_in_delete_kwarg(self):
         self._check_api_token_in_kwarg('delete')

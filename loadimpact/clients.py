@@ -259,7 +259,7 @@ class ApiTokenClient(Client):
         super(ApiTokenClient, self).__init__(*args, **kwargs)
         if not api_token:
             try:
-                api_token = os.environ['LOADIMPACT_API_TOKEN']
+                api_token = self._get_api_token_from_environment()
             except KeyError:
                 raise MissingApiTokenError("An API token must be specified "
                                            "either as the first argument to "
@@ -267,6 +267,9 @@ class ApiTokenClient(Client):
                                            "environment variable "
                                            "LOADIMPACT_API_TOKEN.")
         self.api_token = api_token
+
+    def _get_api_token_from_environment(self):
+        return os.environ['LOADIMPACT_API_TOKEN']
 
     def _prepare_requests_kwargs(self, kwargs):
         kwargs['auth'] = (self.api_token, '')
