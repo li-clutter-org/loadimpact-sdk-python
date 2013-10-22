@@ -53,7 +53,7 @@ class TestFieldsDateTimeField(unittest.TestCase):
     def test_coerce(self):
         value = '%s+00:00' % self.now.strftime(DateTimeField.format)
         coerced = DateTimeField.coerce(value)
-        self.assertEquals(coerced, self.now)
+        self.assertEqual(coerced, self.now)
 
     def test_coerce_bad_format(self):
         self.assertRaises(CoercionError, DateTimeField.coerce, '2013-01-01')
@@ -65,4 +65,4 @@ class TestFieldsDateTimeField(unittest.TestCase):
     def test_get(self):
         value = '%s+00:00' % self.now.strftime(DateTimeField.format)
         r = MockResource(self.client, DateTimeField, value)
-        self.assertEquals(r.field, self.now)
+        self.assertEqual(r.field, self.now)

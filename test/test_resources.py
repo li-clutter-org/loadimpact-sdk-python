@@ -18,6 +18,7 @@ limitations under the License.
 
 import hashlib
 import json
+import sys
 import unittest
 
 from loadimpact.clients import Client
@@ -33,7 +34,7 @@ class MockRequestsResponse(object):
         self.url = 'http://example.com/'
         self.status_code = status_code
         self.kwargs = kwargs
-        for k, v in kwargs.iteritems():
+        for k, v in kwargs.items():
             setattr(self, k, v)
 
     def json(self):
@@ -82,14 +83,14 @@ class TestResourcesResource(unittest.TestCase):
         self.assertRaises(AttributeError, raises)
 
     def test__path(self):
-        self.assertEquals(MockResource._path(), MockResource.resource_name)
-        self.assertEquals(MockResource._path(resource_id=None),
+        self.assertEqual(MockResource._path(), MockResource.resource_name)
+        self.assertEqual(MockResource._path(resource_id=None),
                           MockResource.resource_name)
-        self.assertEquals(MockResource._path(resource_id=0),
+        self.assertEqual(MockResource._path(resource_id=0),
                           '%s/%s' % (MockResource.resource_name, 0))
-        self.assertEquals(MockResource._path(resource_id=1),
+        self.assertEqual(MockResource._path(resource_id=1),
                           '%s/%s' % (MockResource.resource_name, 1))
-        self.assertEquals(MockResource._path(resource_id=1, action='action'),
+        self.assertEqual(MockResource._path(resource_id=1, action='action'),
                           '%s/%s/%s' % (MockResource.resource_name, 1, 'action'))
 
 
@@ -100,7 +101,7 @@ class TestResourcesDataStore(unittest.TestCase):
     def test_has_conversion_finished(self):
         ds = DataStore(self.client)
         self.assertFalse(ds.has_conversion_finished())
-        self.assertEquals(self.client.last_request_method, 'get')
+        self.assertEqual(self.client.last_request_method, 'get')
 
     def test_has_conversion_finished_status_queued(self):
         self._check_has_conversion_finished(DataStore.STATUS_QUEUED, False)
@@ -117,25 +118,25 @@ class TestResourcesDataStore(unittest.TestCase):
     def _check_has_conversion_finished(self, status, expected):
         ds = DataStore(self.client)
         ds.status = status
-        self.assertEquals(ds.has_conversion_finished(), expected)
-        self.assertEquals(self.client.last_request_method, 'get')
+        self.assertEqual(ds.has_conversion_finished(), expected)
+        self.assertEqual(self.client.last_request_method, 'get')
 
 
 class TestResourcesLoadZone(unittest.TestCase):
     def test_name_to_id(self):
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD), 1)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_US_ASHBURN), 11)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_US_PALOALTO), 12)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_IE_DUBLIN), 13)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_SG_SINGAPORE), 14)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_JP_TOKYO), 15)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_US_PORTLAND), 22)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_BR_SAOPAULO), 23)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.AMAZON_AU_SYDNEY), 25)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.RACKSPACE_US_CHICAGO), 26)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.RACKSPACE_US_DALLAS), 27)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.RACKSPACE_UK_LONDON), 28)
-        self.assertEquals(LoadZone.name_to_id(LoadZone.RACKSPACE_AU_SYDNEY), 29)
+        self.assertEqual(LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD), 1)
+        self.assertEqual(LoadZone.name_to_id(LoadZone.AMAZON_US_ASHBURN), 11)
+        self.assertEqual(LoadZone.name_to_id(LoadZone.AMAZON_US_PALOALTO), 12)
+        self.assertEqual(LoadZone.name_to_id(LoadZone.AMAZON_IE_DUBLIN), 13)
+        self.assertEqual(LoadZone.name_to_id(LoadZone.AMAZON_SG_SINGAPORE), 14)
+        self.assertEqual(LoadZone.name_to_id(LoadZone.AMAZON_JP_TOKYO), 15)
+        self.assertEqual(LoadZone.name_to_id(LoadZone.AMAZON_US_PORTLAND), 22)
+        self.assertEqual(LoadZone.name_to_id(LoadZone.AMAZON_BR_SAOPAULO), 23)
+        self.assertEqual(LoadZone.name_to_id(LoadZone.AMAZON_AU_SYDNEY), 25)
+        self.assertEqual(LoadZone.name_to_id(LoadZone.RACKSPACE_US_CHICAGO), 26)
+        self.assertEqual(LoadZone.name_to_id(LoadZone.RACKSPACE_US_DALLAS), 27)
+        self.assertEqual(LoadZone.name_to_id(LoadZone.RACKSPACE_UK_LONDON), 28)
+        self.assertEqual(LoadZone.name_to_id(LoadZone.RACKSPACE_AU_SYDNEY), 29)
 
     def test_name_to_id_exception(self):
         self.assertRaises(ValueError, LoadZone.name_to_id, 'unknown')
@@ -148,20 +149,20 @@ class TestResourcesTest(unittest.TestCase):
     def test_abort(self):
         test = Test(self.client)
         result = test.abort()
-        self.assertEquals(self.client.last_request_method, 'post')
+        self.assertEqual(self.client.last_request_method, 'post')
         self.assertTrue(result)
 
     def test_abort_failed_409(self):
         client = MockClient(response_status_code=409)
         test = Test(client)
         result = test.abort()
-        self.assertEquals(client.last_request_method, 'post')
+        self.assertEqual(client.last_request_method, 'post')
         self.assertFalse(result)
 
     def test_is_done(self):
         test = Test(self.client)
         self.assertFalse(test.is_done())
-        self.assertEquals(self.client.last_request_method, 'get')
+        self.assertEqual(self.client.last_request_method, 'get')
 
     def test_is_done_status_created(self):
         self._check_is_done(Test.STATUS_CREATED, False)
@@ -198,8 +199,8 @@ class TestResourcesTest(unittest.TestCase):
         result_stream = test.result_stream()
         self.assertTrue(isinstance(
             result_stream, _TestResultStream))
-        self.assertEquals(result_stream.test, test)
-        self.assertEquals(result_stream.result_ids,
+        self.assertEqual(result_stream.test, test)
+        self.assertEqual(result_stream.result_ids,
             [TestResult.result_id_from_name(
                 TestResult.USER_LOAD_TIME,
                 load_zone_id=LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD)),
@@ -208,74 +209,80 @@ class TestResourcesTest(unittest.TestCase):
                 load_zone_id=LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD))])
 
     def test_status_code_to_text(self):
-        self.assertEquals(
+        self.assertEqual(
             Test.status_code_to_text(Test.STATUS_CREATED), 'created')
-        self.assertEquals(
+        self.assertEqual(
             Test.status_code_to_text(Test.STATUS_QUEUED), 'queued')
-        self.assertEquals(
+        self.assertEqual(
             Test.status_code_to_text(Test.STATUS_INITIALIZING), 'initializing')
-        self.assertEquals(
+        self.assertEqual(
             Test.status_code_to_text(Test.STATUS_RUNNING), 'running')
-        self.assertEquals(
+        self.assertEqual(
             Test.status_code_to_text(Test.STATUS_FINISHED), 'finished')
-        self.assertEquals(
+        self.assertEqual(
             Test.status_code_to_text(Test.STATUS_TIMED_OUT), 'timed out')
-        self.assertEquals(
+        self.assertEqual(
             Test.status_code_to_text(Test.STATUS_ABORTING_USER),
             'aborting (by user)')
-        self.assertEquals(Test.status_code_to_text(Test.STATUS_ABORTED_USER),
+        self.assertEqual(Test.status_code_to_text(Test.STATUS_ABORTED_USER),
             'aborted (by user)')
-        self.assertEquals(
+        self.assertEqual(
             Test.status_code_to_text(Test.STATUS_ABORTING_SYSTEM),
             'aborting (by system)')
-        self.assertEquals(
+        self.assertEqual(
             Test.status_code_to_text(Test.STATUS_ABORTED_SYSTEM),
             'aborted (by system)')
-        self.assertEquals(
+        self.assertEqual(
             Test.status_code_to_text(0xffffffff),
             'unknown')
 
     def _check_is_done(self, status, expected):
         test = Test(self.client)
         test.status = status
-        self.assertEquals(test.is_done(), expected)
-        self.assertEquals(self.client.last_request_method, 'get')
+        self.assertEqual(test.is_done(), expected)
+        self.assertEqual(self.client.last_request_method, 'get')
 
 
 class TestResourcesTestResult(unittest.TestCase):
     def test_result_id_from_name_with_name(self):
-        self.assertEquals(TestResult.result_id_from_name('__li_user_load_time'),
+        self.assertEqual(TestResult.result_id_from_name('__li_user_load_time'),
                           '__li_user_load_time')
 
     def test_result_id_from_name_with_name_load_zone(self):
-        self.assertEquals(TestResult.result_id_from_name('__li_user_load_time',
+        self.assertEqual(TestResult.result_id_from_name('__li_user_load_time',
                                                          load_zone_id=1),
                           '__li_user_load_time:1')
 
     def test_result_id_from_name_with_name_load_zone_user_scenario(self):
-        self.assertEquals(TestResult.result_id_from_name('__li_user_load_time',
+        self.assertEqual(TestResult.result_id_from_name('__li_user_load_time',
                                                          load_zone_id=1,
                                                          user_scenario_id=1),
                           '__li_user_load_time:1:1')
 
     def test_result_id_from_custom_metric_name(self):
         name = 'my metric'
-        self.assertEquals(TestResult.result_id_from_custom_metric_name(name,
-                                                                       1, 1),
-                          '__custom_%s:1:1' % hashlib.md5(name).hexdigest())
+        result_id = TestResult.result_id_from_custom_metric_name(name, 1, 1)
+        if sys.version_info >= (3, 0) and isinstance(name, str):
+            name = name.encode('utf-8')
+        self.assertEqual(result_id, '__custom_%s:1:1'
+                                    % hashlib.md5(name).hexdigest())
 
     def test_result_id_for_page(self):
         name = 'my page'
-        self.assertEquals(TestResult.result_id_for_page(name, 1, 1),
-                          '__li_page%s:1:1' % hashlib.md5(name).hexdigest())
+        result_id = TestResult.result_id_for_page(name, 1, 1)
+        if sys.version_info >= (3, 0) and isinstance(name, str):
+            name = name.encode('utf-8')
+        self.assertEqual(result_id, '__li_page%s:1:1'
+                                    % hashlib.md5(name).hexdigest())
 
     def test_result_id_for_url(self):
         url = 'http://example.com/'
-        self.assertEquals(TestResult.result_id_for_url(url, 1, 1, 
-                                                       method='GET',
-                                                       status_code=200),
-                          '__li_url%s:1:1:GET:200'
-                          % hashlib.md5(url).hexdigest())
+        result_id = TestResult.result_id_for_url(url, 1, 1, method='GET',
+                                                 status_code=200)
+        if sys.version_info >= (3, 0) and isinstance(url, str):
+            url = url.encode('utf-8')
+        self.assertEqual(result_id, '__li_url%s:1:1:GET:200'
+                                    % hashlib.md5(url).hexdigest())
 
 
 class TestResourcesTestConfig(unittest.TestCase):
@@ -283,17 +290,17 @@ class TestResourcesTestConfig(unittest.TestCase):
         self.client = MockClient()
 
     def test_user_type_enums(self):
-        self.assertEquals(TestConfig.SBU, 'sbu')
-        self.assertEquals(TestConfig.VU, 'vu')
+        self.assertEqual(TestConfig.SBU, 'sbu')
+        self.assertEqual(TestConfig.VU, 'vu')
 
     def test_user_type_getter(self):
         c = TestConfig(self.client)
-        self.assertEquals(c.user_type, TestConfig.SBU)
+        self.assertEqual(c.user_type, TestConfig.SBU)
 
     def test_user_type_setter(self):
         c = TestConfig(self.client)
         c.user_type = TestConfig.VU
-        self.assertEquals(c.user_type, TestConfig.VU)
+        self.assertEqual(c.user_type, TestConfig.VU)
 
     def test_user_type_setter_valueerror(self):
         c = TestConfig(self.client)
@@ -305,9 +312,9 @@ class TestResourcesTestConfig(unittest.TestCase):
         name = 'Cloned Test Config'
         test_config = TestConfig(self.client)
         test_config_clone = test_config.clone(name)
-        self.assertEquals(self.client.last_request_method, 'post')
-        self.assertEquals(self.client.last_request_kwargs['data']['name'],
-                          name)
+        self.assertEqual(self.client.last_request_method, 'post')
+        self.assertEqual(self.client.last_request_kwargs['data']['name'],
+                         name)
         self.assertTrue(isinstance(test_config_clone, TestConfig))
 
     def test_update_with_dict(self):
@@ -315,10 +322,10 @@ class TestResourcesTestConfig(unittest.TestCase):
         test_config = TestConfig(self.client)
         test_config.update({'name': name_change})
 
-        self.assertEquals(self.client.last_request_method, 'put')
-        self.assertEquals(self.client.last_request_kwargs['data']['name'],
-                          name_change)
-        self.assertEquals(test_config.name, name_change)
+        self.assertEqual(self.client.last_request_method, 'put')
+        self.assertEqual(self.client.last_request_kwargs['data']['name'],
+                         name_change)
+        self.assertEqual(test_config.name, name_change)
 
     def test_update_with_attribute(self):
         name_change = 'Test Config'
@@ -326,10 +333,10 @@ class TestResourcesTestConfig(unittest.TestCase):
         test_config.name = name_change
         test_config.update()
 
-        self.assertEquals(self.client.last_request_method, 'put')
-        self.assertEquals(self.client.last_request_kwargs['data']['name'],
-                          name_change)
-        self.assertEquals(test_config.name, name_change)
+        self.assertEqual(self.client.last_request_method, 'put')
+        self.assertEqual(self.client.last_request_kwargs['data']['name'],
+                         name_change)
+        self.assertEqual(test_config.name, name_change)
 
 
 class TestResourcesUserScenario(unittest.TestCase):
@@ -340,9 +347,9 @@ class TestResourcesUserScenario(unittest.TestCase):
         name = 'Cloned User Scenario'
         user_scenario = UserScenario(self.client)
         user_scenario_clone = user_scenario.clone(name)
-        self.assertEquals(self.client.last_request_method, 'post')
-        self.assertEquals(self.client.last_request_kwargs['data']['name'],
-                          name)
+        self.assertEqual(self.client.last_request_method, 'post')
+        self.assertEqual(self.client.last_request_kwargs['data']['name'],
+                         name)
         self.assertTrue(isinstance(user_scenario_clone, UserScenario))
 
     def test_update_with_dict(self):
@@ -350,10 +357,10 @@ class TestResourcesUserScenario(unittest.TestCase):
         user_scenario = UserScenario(self.client)
         user_scenario.update({'name': name_change})
 
-        self.assertEquals(self.client.last_request_method, 'put')
-        self.assertEquals(self.client.last_request_kwargs['data']['name'],
-                          name_change)
-        self.assertEquals(user_scenario.name, name_change)
+        self.assertEqual(self.client.last_request_method, 'put')
+        self.assertEqual(self.client.last_request_kwargs['data']['name'],
+                         name_change)
+        self.assertEqual(user_scenario.name, name_change)
 
     def test_update_with_attribute(self):
         name_change = 'Test User Scenario'
@@ -361,10 +368,10 @@ class TestResourcesUserScenario(unittest.TestCase):
         user_scenario.name = name_change
         user_scenario.update()
 
-        self.assertEquals(self.client.last_request_method, 'put')
-        self.assertEquals(self.client.last_request_kwargs['data']['name'],
-                          name_change)
-        self.assertEquals(user_scenario.name, name_change)
+        self.assertEqual(self.client.last_request_method, 'put')
+        self.assertEqual(self.client.last_request_kwargs['data']['name'],
+                         name_change)
+        self.assertEqual(user_scenario.name, name_change)
 
 
 class TestResourcesUserScenarioValidation(unittest.TestCase):
@@ -374,7 +381,7 @@ class TestResourcesUserScenarioValidation(unittest.TestCase):
     def test_is_done(self):
         validation = UserScenarioValidation(self.client)
         self.assertFalse(validation.is_done())
-        self.assertEquals(self.client.last_request_method, 'get')
+        self.assertEqual(self.client.last_request_method, 'get')
 
     def test_is_done_status_queued(self):
         self._check_is_done(UserScenarioValidation.STATUS_QUEUED, False)
@@ -392,17 +399,17 @@ class TestResourcesUserScenarioValidation(unittest.TestCase):
         self._check_is_done(UserScenarioValidation.STATUS_FAILED, True)
 
     def test_status_code_to_text(self):
-        self.assertEquals(UserScenarioValidation.status_code_to_text(
+        self.assertEqual(UserScenarioValidation.status_code_to_text(
             UserScenarioValidation.STATUS_QUEUED), 'queued')
-        self.assertEquals(UserScenarioValidation.status_code_to_text(
+        self.assertEqual(UserScenarioValidation.status_code_to_text(
             UserScenarioValidation.STATUS_INITIALIZING), 'initializing')
-        self.assertEquals(UserScenarioValidation.status_code_to_text(
+        self.assertEqual(UserScenarioValidation.status_code_to_text(
             UserScenarioValidation.STATUS_RUNNING), 'running')
-        self.assertEquals(UserScenarioValidation.status_code_to_text(
+        self.assertEqual(UserScenarioValidation.status_code_to_text(
             UserScenarioValidation.STATUS_FINISHED), 'finished')
-        self.assertEquals(UserScenarioValidation.status_code_to_text(
+        self.assertEqual(UserScenarioValidation.status_code_to_text(
             UserScenarioValidation.STATUS_FAILED), 'failed')
-        self.assertEquals(UserScenarioValidation.status_code_to_text(
+        self.assertEqual(UserScenarioValidation.status_code_to_text(
             0xffffffff), 'unknown')
 
     def test_result_stream(self):
@@ -410,10 +417,10 @@ class TestResourcesUserScenarioValidation(unittest.TestCase):
         result_stream = validation.result_stream()
         self.assertTrue(isinstance(
             result_stream, _UserScenarioValidationResultStream))
-        self.assertEquals(result_stream.validation, validation)
+        self.assertEqual(result_stream.validation, validation)
 
     def _check_is_done(self, status, expected):
         validation = UserScenarioValidation(self.client)
         validation.status = status
-        self.assertEquals(validation.is_done(), expected)
-        self.assertEquals(self.client.last_request_method, 'get')
+        self.assertEqual(validation.is_done(), expected)
+        self.assertEqual(self.client.last_request_method, 'get')
