@@ -41,8 +41,8 @@ def start_validation(client, user_scenario_id):
                   % (result['timestamp'], result['message'],
                      result['line_number']))
             print('Stack trace:')
-            for frame in result['stack_trace']:
-                print('\t%s:%s in %s' % (frame[2], frame[1], frame[0]))
+            for filename, line, function in result['stack_trace']:
+                print('\t%s:%s in %s' % (function, line, filename))
         else:
             print('[%s]: %s' % (result['timestamp'], result['message']))
     print("Validation completed with status '%s'"
