@@ -198,6 +198,18 @@ class DataStore(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
             return True
         return False
 
+    @classmethod
+    def status_code_to_text(cls, status_code):
+        if DataStore.STATUS_QUEUED == status_code:
+            return 'queued'
+        elif DataStore.STATUS_CONVERTING == status_code:
+            return 'converting'
+        elif DataStore.STATUS_FINISHED == status_code:
+            return 'finished'
+        elif DataStore.STATUS_FAILED == status_code:
+            return 'failed'
+        return 'unknown'
+
 
 class LoadZone(Resource, ListMixin):
     resource_name = 'load-zones'

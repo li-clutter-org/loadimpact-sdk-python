@@ -115,6 +115,21 @@ class TestResourcesDataStore(unittest.TestCase):
     def test_has_conversion_finished_status_failed(self):
         self._check_has_conversion_finished(DataStore.STATUS_FAILED, True)
 
+    def test_status_code_to_text(self):
+        self.assertEqual(
+            DataStore.status_code_to_text(DataStore.STATUS_QUEUED), 'queued')
+        self.assertEqual(
+            DataStore.status_code_to_text(DataStore.STATUS_CONVERTING),
+            'converting')
+        self.assertEqual(
+            DataStore.status_code_to_text(DataStore.STATUS_FINISHED),
+            'finished')
+        self.assertEqual(
+            DataStore.status_code_to_text(DataStore.STATUS_FAILED), 'failed')
+        self.assertEqual(
+            Test.status_code_to_text(0xffffffff),
+            'unknown')
+
     def _check_has_conversion_finished(self, status, expected):
         ds = DataStore(self.client)
         ds.status = status
