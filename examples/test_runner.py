@@ -53,13 +53,13 @@ def start_test(client, test_config_id):
                 print(data)
         print("Test completed with status '%s'"
               % (Test.status_code_to_text(test.status)))
-    except ApiError, e:
+    except ApiError as e:
         print("Aborting test, unhandled error: %s" % str(e))
         test.abort()
 
 
 def usage():
-    print(u"Usage: specify a test configuration ID")
+    print("Usage: specify a test configuration ID")
 
 
 if __name__ == "__main__":
@@ -84,4 +84,4 @@ if __name__ == "__main__":
         client = ApiTokenClient(opts.api_token, debug=opts.debug)
         start_test(client, test_config_id)
     except ApiError:
-        print(u"Error encountered: %s" % traceback.format_exc())
+        print("Error encountered: %s" % traceback.format_exc())

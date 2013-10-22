@@ -47,7 +47,7 @@ def handle_get_or_list(client, resource_name, resource_id=None):
                            'user_scenario']:
         resources = get_or_list(client, UserScenario, resource_id)
     else:
-        raise RuntimeError(u"Unknown resource: %s" % resource_name)
+        raise RuntimeError("Unknown resource: %s" % resource_name)
 
     for resource in resources:
         print(repr(resource))
@@ -73,10 +73,10 @@ def handle_create(client, resource_name, resource_fields, resource_file=None):
                            'user_scenario']:
         UserScenario.create(client, resource_fields)
     else:
-        raise RuntimeError(u"Unknown resource or type not deletable: %s"
+        raise RuntimeError("Unknown resource or type not deletable: %s"
                            % resource_name)
 
-    print(u"Resource created!")
+    print("Resource created!")
 
 
 def handle_update(client, resource_name, resource_id, resource_fields):
@@ -90,10 +90,10 @@ def handle_update(client, resource_name, resource_id, resource_fields):
                            'user_scenario']:
         UserScenario.update(client, resource_id)
     else:
-        raise RuntimeError(u"Unknown resource or type not deletable: %s"
+        raise RuntimeError("Unknown resource or type not deletable: %s"
                            % resource_name)
 
-    print(u"Resource updated!")
+    print("Resource updated!")
 
 
 def handle_delete(client, resource_name, resource_id):
@@ -107,10 +107,10 @@ def handle_delete(client, resource_name, resource_id):
                            'user_scenario']:
         UserScenario.delete_with_id(client, resource_id)
     else:
-        raise RuntimeError(u"Unknown resource or type not deletable: %s"
+        raise RuntimeError("Unknown resource or type not deletable: %s"
                            % resource_name)
 
-    print(u"Resource deleted!")
+    print("Resource deleted!")
 
 
 def handle_start(client, resource_name, resource_id):
@@ -121,38 +121,38 @@ def handle_start(client, resource_name, resource_id):
 
     TestConfig.start_with_id(client, resource_id)
 
-    print(u"Test started!")
+    print("Test started!")
 
 
 def usage():
-    print(u"Usage:")
-    print(u"\tresource_name: name of resource, eg. 'userscenario', "
-          u"'testconfig', 'datastore' etc. or shorthand form 'us', 'tc', 'ds' "
-          u"etc.")
-    print(u"\t(optional) resource_action: action to perform, one of 'list' "
-          u"(default), 'get', 'create', 'update', 'delete' or 'start' (only "
-          u"for test configs)")
-    print(u"")
-    print(u"'list' specific arguments:")
-    print(u"\t-")
-    print(u"")
-    print(u"'get' specific arguments:")
-    print(u"\tresource_id: ID of resource to get")
-    print(u"")
-    print(u"'create' specific arguments:")
-    print(u"\tresource_fields: JSON string with resource fields")
-    print(u"\t(optional) resource_file: Data store CSV file to upload for data "
-          u"store resource")
-    print(u"")
-    print(u"'update' specific arguments:")
-    print(u"\tresource_id: ID of resource to update")
-    print(u"\tresource_fields: JSON string with resource fields to update")
-    print(u"")
-    print(u"'delete' specific arguments:")
-    print(u"\tresource_id: ID of resource to delete")
-    print(u"")
-    print(u"'start' specific arguments:")
-    print(u"\tresource_id: ID of test configuration to start a test from")
+    print("Usage:")
+    print("\tresource_name: name of resource, eg. 'userscenario', "
+          "'testconfig', 'datastore' etc. or shorthand form 'us', 'tc', 'ds' "
+          "etc.")
+    print("\t(optional) resource_action: action to perform, one of 'list' "
+          "(default), 'get', 'create', 'update', 'delete' or 'start' (only "
+          "for test configs)")
+    print("")
+    print("'list' specific arguments:")
+    print("\t-")
+    print("")
+    print("'get' specific arguments:")
+    print("\tresource_id: ID of resource to get")
+    print("")
+    print("'create' specific arguments:")
+    print("\tresource_fields: JSON string with resource fields")
+    print("\t(optional) resource_file: Data store CSV file to upload for data "
+          "store resource")
+    print("")
+    print("'update' specific arguments:")
+    print("\tresource_id: ID of resource to update")
+    print("\tresource_fields: JSON string with resource fields to update")
+    print("")
+    print("'delete' specific arguments:")
+    print("\tresource_id: ID of resource to delete")
+    print("")
+    print("'start' specific arguments:")
+    print("\tresource_id: ID of test configuration to start a test from")
 
 
 if __name__ == "__main__":
@@ -203,4 +203,4 @@ if __name__ == "__main__":
         elif 'start' == resource_action:
             handle_start(client, resource_name, resource_id)
     except ApiError:
-        print(u"Error encountered: %s" % traceback.format_exc())
+        print("Error encountered: %s" % traceback.format_exc())

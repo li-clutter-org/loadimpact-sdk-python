@@ -47,7 +47,7 @@ def inspect_resource(api_token, resource_name, resource_id=None, debug=False):
                            'user_scenario']:
         resources = get_or_list(client, UserScenario, resource_id)
     else:
-        raise RuntimeError(u"Unknown resource: %s" % resource_name)
+        raise RuntimeError("Unknown resource: %s" % resource_name)
 
     for resource in resources:
         print(repr(resource))
@@ -63,10 +63,10 @@ if __name__ == "__main__":
     opts, args = p.parse_args()
 
     if 1 > len(args):
-        print(u"You need to specify at least 1 argument (to list): "
-              u"resource_name")
-        print(u"Specify 2 arguments (to get specific resource): resource_name, "
-              u"resource_id")
+        print("You need to specify at least 1 argument (to list): "
+              "resource_name")
+        print("Specify 2 arguments (to get specific resource): resource_name, "
+              "resource_id")
         sys.exit(2)
 
     resource_name = args[0]
@@ -78,4 +78,4 @@ if __name__ == "__main__":
         inspect_resource(opts.api_token, resource_name, resource_id=resource_id,
                          debug=opts.debug)
     except ApiError:
-        print(u"Error encountered: %s" % traceback.format_exc())
+        print("Error encountered: %s" % traceback.format_exc())

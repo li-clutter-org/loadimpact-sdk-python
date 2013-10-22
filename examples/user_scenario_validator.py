@@ -50,7 +50,7 @@ def start_validation(client, user_scenario_id):
 
 
 def usage():
-    print(u"Usage: specify a user scenario ID")
+    print("Usage: specify a user scenario ID")
 
 
 if __name__ == "__main__":
@@ -75,4 +75,4 @@ if __name__ == "__main__":
         client = ApiTokenClient(opts.api_token, debug=opts.debug)
         start_validation(client, user_scenario_id)
     except ApiError:
-        print(u"Error encountered: %s" % traceback.format_exc())
+        print("Error encountered: %s" % traceback.format_exc())
