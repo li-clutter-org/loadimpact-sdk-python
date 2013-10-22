@@ -16,36 +16,46 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from __future__ import absolute_import
+
 __all__ = ['ApiTokenClient']
 
+try:
+    import httplib
+except ImportError:
+    from http import client as httplib
 
-import httplib
 import os
 import platform
 import requests
 
-from exceptions import (
+from .exceptions import (
     ApiError, BadRequestError, ConflictError, ConnectionError, ClientError,
     ForbiddenError, HTTPError, GoneError, MethodNotAllowedError,
     MissingApiTokenError, NotFoundError, RateLimitError, ServerError,
     TimeoutError, UnauthorizedError)
-from resources import (
+from .resources import (
     DataStore, TestConfig, UserScenario, UserScenarioValidation)
-from urlparse import urljoin
-from version import __version__
+
+try:
+    from urlparse import urljoin
+except ImportError:
+    from urllib.parse import urljoin
+
+from .version import __version__
 
 
 def requests_exceptions_handling(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except requests.exceptions.ConnectionError, e:
+        except requests.exceptions.ConnectionError as e:
             raise ConnectionError(str(e))
-        except requests.exceptions.HTTPError, e:
+        except requests.exceptions.HTTPError as e:
             raise HTTPError(str(e))
-        except requests.exceptions.Timeout, e:
+        except requests.exceptions.Timeout as e:
             raise TimeoutError(str(e))
-        except requests.exceptions.RequestException, e:
+        except requests.exceptions.RequestException as e:
             raise ApiError(str(e))
     return wrapper
 
@@ -208,7 +218,7 @@ class Client(object):
         if 399 < status_code and 600 > status_code:
             try:
                 error = response.json()
-                msg = u"%s (%s)" % (error['message'], response.url)
+                msg = "%s (%s)" % (error['message'], response.url)
             except KeyError:
                 msg = response.url
 
@@ -251,11 +261,11 @@ class ApiTokenClient(Client):
             try:
                 api_token = os.environ['LOADIMPACT_API_TOKEN']
             except KeyError:
-                raise MissingApiTokenError(u"An API token must be specified "
-                                           u"either as the first argument to "
-                                           u"ApiClient or by setting the "
-                                           u"environment variable "
-                                           u"LOADIMPACT_API_TOKEN.")
+                raise MissingApiTokenError("An API token must be specified "
+                                           "either as the first argument to "
+                                           "ApiClient or by setting the "
+                                           "environment variable "
+                                           "LOADIMPACT_API_TOKEN.")
         self.api_token = api_token
 
     def _prepare_requests_kwargs(self, kwargs):

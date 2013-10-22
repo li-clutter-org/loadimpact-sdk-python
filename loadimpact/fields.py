@@ -16,12 +16,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from __future__ import absolute_import
+
 __all__ = ['DateTimeField', 'DictField', 'FloatField', 'IntegerField',
            'ListField', 'ObjectField', 'StringField', 'UnicodeField']
 
+import sys
+
 from datetime import datetime
-from exceptions import CoercionError
-from utils import UTC
+from .exceptions import CoercionError
+from .utils import UTC
 
 
 class Field(object):
@@ -50,7 +54,7 @@ class Field(object):
     def value(self, value):
         try:
             self._value = self.__class__.coerce(value)
-        except CoercionError, e:
+        except CoercionError as e:
             raise ValueError(e)
 
     def __repr__(self):
@@ -78,7 +82,7 @@ class DateTimeField(Field):
             try:
                 return datetime.strptime(value[:-6], cls.format).replace(
                     tzinfo=UTC())
-            except ValueError, e:
+            except ValueError as e:
                 raise CoercionError(e)
         return value
 
@@ -93,7 +97,7 @@ class DictField(Field):
     @classmethod
     def coerce(cls, value):
         if not isinstance(value, cls.field_type):
-            raise CoercionError(u"'%s' is not a dict" % repr(value))
+            raise CoercionError("'%s' is not a dict" % repr(value))
         return value
 
 
@@ -104,7 +108,7 @@ class FloatField(Field):
     def coerce(cls, value):
         try:
             return float(value)
-        except ValueError, e:
+        except ValueError as e:
             raise CoercionError(e)
 
 
@@ -115,7 +119,7 @@ class IntegerField(Field):
     def coerce(cls, value):
         try:
             return int(value)
-        except ValueError, e:
+        except ValueError as e:
             raise CoercionError(e)
 
 
@@ -125,7 +129,7 @@ class ListField(Field):
     @classmethod
     def coerce(cls, value):
         if not isinstance(value, cls.field_type):
-            raise CoercionError(u"'%s' is not a list" % repr(value))
+            raise CoercionError("'%s' is not a list" % repr(value))
         return value
 
 
@@ -136,21 +140,24 @@ class StringField(Field):
     def coerce(cls, value):
         try:
             return str(value)
-        except ValueError, e:
+        except ValueError as e:
             raise CoercionError(e)
 
 
 class UnicodeField(Field):
-    field_type = unicode
+    field_type = str if sys.version_info >= (3, 0) else unicode
 
     @classmethod
     def coerce(cls, value):
         try:
-            if isinstance(value, str):
-                return unicode(value, 'utf-8')
+            if sys.version_info >= (3, 0):
+                return str(value)
             else:
-                return unicode(value)
-        except (ValueError, UnicodeDecodeError), e:
+                if isinstance(value, str):
+                    return unicode(value, 'utf-8')
+                else:
+                    return unicode(value)
+        except (ValueError, UnicodeDecodeError) as e:
             raise CoercionError(e)
 
 
@@ -161,5 +168,5 @@ class ObjectField(Field):
     def coerce(cls, value):
         try:
             return cls.field_type(value)
-        except ValueError, e:
+        except ValueError as e:
             raise CoercionError(e)

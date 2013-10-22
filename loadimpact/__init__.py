@@ -16,7 +16,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from clients import *
-from exceptions import *
-from resources import *
-from version import __version__
+from __future__ import absolute_import
+
+from .clients import *
+from .exceptions import *
+from .resources import *
+from .version import __version__

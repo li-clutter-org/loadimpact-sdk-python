@@ -16,19 +16,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from __future__ import absolute_import
+
 __all__ = ['DataStore', 'LoadZone', 'Test', 'TestConfig', 'TestResult',
            'UserScenario', 'UserScenarioValidation']
 
 import json
 import hashlib
+import sys
 
-from exceptions import CoercionError, ConflictError, ResponseParseError
-from fields import (
+from .exceptions import CoercionError, ConflictError, ResponseParseError
+from .fields import (
     DateTimeField, DictField, Field, IntegerField, ListField, StringField,
     UnicodeField)
 from pprint import pformat
 from time import sleep
-from utils import is_dict_different
+from .utils import is_dict_different
 
 
 class Resource(object):
@@ -68,7 +71,7 @@ class Resource(object):
 
     def _set_fields(self, data):
         fields = self.__class__.fields
-        for k, f in fields.iteritems():
+        for k, f in fields.items():
             if isinstance(f, tuple):
                 fun, opts = f
                 self._fields[k] = fun(data.get(k, fun.default()), options=opts)
@@ -84,14 +87,14 @@ class GetMixin(object):
             instance = cls(client)
             instance._set_fields(response.json())
             return instance
-        except CoercionError, e:
+        except CoercionError as e:
             raise ResponseParseError(e)
 
     def sync(self):
         response = self.client.get(self.__class__._path(self.id))
         try:
             self._set_fields(response.json())
-        except CoercionError, e:
+        except CoercionError as e:
             raise ResponseParseError(e)
 
 
@@ -110,7 +113,7 @@ class CreateMixin(object):
             instance = cls(client)
             instance._set_fields(response.json())
             return instance
-        except CoercionError, e:
+        except CoercionError as e:
             raise ResponseParseError(e)
 
 
@@ -132,7 +135,7 @@ class UpdateMixin(object):
 
         data = {}
         fields = self.__class__.fields
-        for k, f in fields.iteritems():
+        for k, f in fields.items():
             if self._fields[k].has_option(Field.SERIALIZE):
                 data[k] = getattr(self, k)
 
@@ -140,7 +143,7 @@ class UpdateMixin(object):
                                    data=json.dumps(data))
         try:
             self._set_fields(response.json())
-        except CoercionError, e:
+        except CoercionError as e:
             raise ResponseParseError(e)
 
 
@@ -157,7 +160,7 @@ class ListMixin(object):
                     instance._set_fields(r)
                     resources.append(instance)
             return resources
-        except CoercionError, e:
+        except CoercionError as e:
             raise ResponseParseError(e)
 
 
@@ -247,7 +250,7 @@ class LoadZone(Resource, ListMixin):
         try:
             return cls.NAME_TO_ID_MAP[name]
         except KeyError:
-            raise ValueError(u"There's no load zone with name '%s'" % name)
+            raise ValueError("There's no load zone with name '%s'" % name)
 
 
 class TestResult(object):
@@ -281,17 +284,32 @@ class TestResult(object):
     @classmethod
     def result_id_from_custom_metric_name(cls, custom_name, load_zone_id,
                                           user_scenario_id):
+        if sys.version_info >= (3, 0):
+            custom_name = custom_name.encode('utf-8')
+        else:
+            if isinstance(custom_name, unicode):
+                custom_name = custom_name.encode('utf-8')
         return '__custom_%s:%s:%s' % (hashlib.md5(custom_name).hexdigest(),
                                      str(load_zone_id), str(user_scenario_id))
 
     @classmethod
     def result_id_for_page(cls, page_name, load_zone_id, user_scenario_id):
+        if sys.version_info >= (3, 0):
+            page_name = page_name.encode('utf-8')
+        else:
+            if isinstance(page_name, unicode):
+                page_name = page_name.encode('utf-8')
         return '__li_page%s:%s:%s' % (hashlib.md5(page_name).hexdigest(),
                                       str(load_zone_id), str(user_scenario_id))
 
     @classmethod
     def result_id_for_url(cls, url, load_zone_id, user_scenario_id,
                           method='GET', status_code=200):
+        if sys.version_info >= (3, 0):
+            url = url.encode('utf-8')
+        else:
+            if isinstance(url, unicode):
+                url = url.encode('utf-8')
         return '__li_url%s:%s:%s:%s:%s' % (hashlib.md5(url).hexdigest(),
                                            str(load_zone_id),
                                            str(user_scenario_id),
@@ -330,7 +348,7 @@ class _TestResultStream(Resource):
             response = self._get(path, {'ids': ','.join(q)})
             results = response.json()
             change = {}
-            for rid, data in results.iteritems():
+            for rid, data in results.items():
                 try:
                     if data[0]['offset'] > self._last[rid]['offset']:
                         change[rid] = data[-1]
@@ -531,7 +549,7 @@ class TestConfig(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
     @user_type.setter
     def user_type(self, value):
         if value not in [TestConfig.SBU, TestConfig.VU]:
-            raise ValueError(u"'user_type' must be either 'sbu' or 'vu'")
+            raise ValueError("'user_type' must be either 'sbu' or 'vu'")
         self.config['user_type'] = value
 
     def clone(self, name):
@@ -543,7 +561,7 @@ class TestConfig(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
             instance = self.__class__(self.client)
             instance._set_fields(response.json())
             return instance
-        except CoercionError, e:
+        except CoercionError as e:
             raise ResponseParseError(e)
 
     def start_test(self):
@@ -579,7 +597,7 @@ class TestConfig(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
         try:
             test = response.json()
             return test['id']
-        except KeyError, e:
+        except KeyError as e:
             raise ResponseParseError(e)
 
     def _set_default_config(self):
@@ -615,7 +633,7 @@ class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
             instance = self.__class__(self.client)
             instance._set_fields(response.json())
             return instance
-        except CoercionError, e:
+        except CoercionError as e:
             raise ResponseParseError(e)
 
     def validate(self):
