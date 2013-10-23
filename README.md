@@ -1,4 +1,4 @@
-# Load Impact Python SDK
+# Load Impact Python SDK [![Build Status](https://travis-ci.org/loadimpact/loadimpact-sdk-python.png?branch=master)](https://travis-ci.org/loadimpact/loadimpact-sdk-python)
 
 This Python SDK provides Python APIs to the Load Impact platform for running 
 and managing performance tests in the cloud.
