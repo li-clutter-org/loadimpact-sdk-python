@@ -8,4 +8,4 @@ install:
   - python setup.py -q install
   - pip install -r requirements.txt --use-mirrors
 script:
-  - nosetests
+  - python setup.py test
