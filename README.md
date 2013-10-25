@@ -186,7 +186,7 @@ print("Data store conversion completed with status '%s'"
 
 ### Adding a data store to a user scenario
 ```python
-user_scenario = client.get_data_store(1)
+user_scenario = client.get_user_scenario(1)
 data_store = client.get_data_store(1)
 user_scenario.data_stores.append(data_store.id)
 user_scenario.update()
