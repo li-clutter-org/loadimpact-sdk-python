@@ -35,7 +35,7 @@ from .exceptions import (
     MissingApiTokenError, NotFoundError, RateLimitError, ServerError,
     TimeoutError, UnauthorizedError)
 from .resources import (
-    DataStore, TestConfig, UserScenario, UserScenarioValidation)
+    DataStore, Test, TestConfig, UserScenario, UserScenarioValidation)
 
 try:
     from urlparse import urljoin
@@ -93,6 +93,12 @@ class Client(object):
 
     def list_data_stores(self):
         return DataStore.list(self)
+
+    def get_test(self, resource_id):
+        return Test.get(self, resource_id)
+
+    def list_tests(self):
+        return Test.list(self)
 
     def create_test_config(self, data):
         return TestConfig.create(self, data)
