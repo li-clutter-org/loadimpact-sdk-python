@@ -32,6 +32,7 @@ setup(
     author='Load Impact',
     author_email='support@loadimpact.com',
     packages=['loadimpact'],
+    py_modules = ['ez_setup'],
     url='http://developers.loadimpact.com/',
     license='LICENSE.txt',
     description="The Load Impact SDK provides access to Load Impact's cloud-based performance testing platform",
