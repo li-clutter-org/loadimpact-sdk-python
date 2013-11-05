@@ -325,7 +325,7 @@ class TestResult(object):
         return '__li_url%s:%s:%s:%s:%s' % (hashlib.md5(url).hexdigest(),
                                            str(load_zone_id),
                                            str(user_scenario_id),
-                                           method, str(status_code))
+                                           str(status_code), method)
 
 
 class _TestResultStream(Resource):

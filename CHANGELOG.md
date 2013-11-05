@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.0 (2013-11-05)
+
+- Added missing client.get_test(test_id) and client.list_tests() methods.
+- Fixed URL result ID string construction bug, swapped method and status code.
+
 ## v1.0.0 (2013-10-22)
 
 - Improved APIs for create/get/list to avoid having to pass a client object

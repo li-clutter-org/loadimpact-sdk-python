@@ -1,7 +1,12 @@
-# Load Impact Python SDK [![Build Status](https://travis-ci.org/loadimpact/loadimpact-sdk-python.png?branch=master)](https://travis-ci.org/loadimpact/loadimpact-sdk-python)
+# Load Impact Python SDK [![Build Status](https://travis-ci.org/loadimpact/loadimpact-sdk-python.png?branch=master,develop)](https://travis-ci.org/loadimpact/loadimpact-sdk-python)
 
 This Python SDK provides Python APIs to the Load Impact platform for running 
 and managing performance tests in the cloud.
+
+## Requirements
+
+The Load Impact Python SDK works with Python versions 2.6, 2.7, 3.2 and 3.3.
+It has one dependency, the [requests](http://www.python-requests.org/) library. 
 
 ## Installation
 
@@ -10,6 +15,7 @@ Install using `pip`:
 ```sh
 pip install loadimpact
 ```
+[![Latest PyPI Version](https://pypip.in/v/loadimpact/badge.png)](https://pypi.python.org/pypi/loadimpact) [![PyPI Downloads](https://pypip.in/d/loadimpact/badge.png)](https://pypi.python.org/pypi/loadimpact)
 
 ## Creating an API client
 
