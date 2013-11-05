@@ -296,7 +296,7 @@ class TestResourcesTestResult(unittest.TestCase):
                                                  status_code=200)
         if sys.version_info >= (3, 0) and isinstance(url, str):
             url = url.encode('utf-8')
-        self.assertEqual(result_id, '__li_url%s:1:1:GET:200'
+        self.assertEqual(result_id, '__li_url%s:1:1:200:GET'
                                     % hashlib.md5(url).hexdigest())
 
 
