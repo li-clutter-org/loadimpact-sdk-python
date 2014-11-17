@@ -46,7 +46,7 @@ client = loadimpact.ApiTokenClient()
 configs = client.list_test_configs()
 ```
 
-### Get a specific test configurations
+### Get a specific test configuration
 ```python
 test_config_id = 1
 config = client.get_test_config(test_config_id)
@@ -71,7 +71,7 @@ config = client.create_test_config({
 })
 ```
 
-The available load zone are as follows:
+The available load zones are as follows:
 ```python
 # Amazon load zones
 LoadZone.AMAZON_US_ASHBURN
