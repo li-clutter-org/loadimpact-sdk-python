@@ -65,7 +65,7 @@ config = client.create_test_config({
             "clips": [{
                 "user_scenario_id": 1, "percent": 100
             }],
-            "loadzone": LoadZone.name_to_id(LoadZone.AMAZON_US_ASHBURN)
+            "loadzone": LoadZone.AMAZON_US_ASHBURN
         }]
     }
 })
