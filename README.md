@@ -60,6 +60,7 @@ config = client.create_test_config({
     'name': 'My test configuration',
     'url': 'http://example.com/',
     'config': {
+        "user_type": "sbu",
         "load_schedule": [{"users": 10, "duration": 10}],
         "tracks": [{
             "clips": [{
