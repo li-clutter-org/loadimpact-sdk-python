@@ -1,7 +1,7 @@
 # coding=utf-8
 
 """
-Copyright 2013 Load Impact
+Copyright 2015 Load Impact
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,8 +27,8 @@ import sys
 
 from .exceptions import CoercionError, ConflictError, ResponseParseError
 from .fields import (
-    DateTimeField, DictField, Field, IntegerField, ListField, StringField,
-    UnicodeField)
+    DataStoreListField, DateTimeField, DictField, Field, IntegerField,
+    StringField, UnicodeField)
 from pprint import pformat
 from time import sleep
 from .utils import is_dict_different
@@ -302,7 +302,7 @@ class TestResult(object):
             if isinstance(custom_name, unicode):
                 custom_name = custom_name.encode('utf-8')
         return '__custom_%s:%s:%s' % (hashlib.md5(custom_name).hexdigest(),
-                                     str(load_zone_id), str(user_scenario_id))
+                                      str(load_zone_id), str(user_scenario_id))
 
     @classmethod
     def result_id_for_page(cls, page_name, load_zone_id, user_scenario_id):
@@ -463,12 +463,14 @@ class Test(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
             Test result stream object.
         """
         if not result_ids:
-            result_ids = [TestResult.result_id_from_name(
-                TestResult.USER_LOAD_TIME,
-                load_zone_id=LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD)),
-             TestResult.result_id_from_name(
-                TestResult.ACTIVE_USERS,
-                load_zone_id=LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD))]
+            result_ids = [
+                TestResult.result_id_from_name(
+                    TestResult.USER_LOAD_TIME,
+                    load_zone_id=LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD)),
+                TestResult.result_id_from_name(
+                    TestResult.ACTIVE_USERS,
+                    load_zone_id=LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD))
+            ]
         return self.__class__.stream_class(self, result_ids)
 
     @classmethod
@@ -543,7 +545,7 @@ class TestConfig(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
             self.config['load_schedule'] = []
 
         if (index is None or index < 0 or
-            index >= len(self.config['load_schedule'])):
+                index >= len(self.config['load_schedule'])):
             self.config['load_schedule'].append({
                 'users': users,
                 'duration': duration
@@ -631,7 +633,7 @@ class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
         'name': (UnicodeField, Field.SERIALIZE),
         'script_type': StringField,
         'load_script': (UnicodeField, Field.SERIALIZE),
-        'data_stores': (ListField, Field.SERIALIZE),
+        'data_stores': (DataStoreListField, Field.SERIALIZE),
         'created': DateTimeField,
         'updated': DateTimeField
     }
@@ -683,7 +685,6 @@ class _UserScenarioValidationResultStream(Resource):
 
         # Sync user scenario validation model to update status.
         self.validation.sync()
-
 
     def __iter__(self):
         return self.__call__()
