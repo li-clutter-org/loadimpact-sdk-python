@@ -15,7 +15,7 @@ Install using `pip`:
 ```sh
 pip install loadimpact
 ```
-[![Latest PyPI Version](https://pypip.in/v/loadimpact/badge.png)](https://pypi.python.org/pypi/loadimpact) [![PyPI Downloads](https://pypip.in/d/loadimpact/badge.png)](https://pypi.python.org/pypi/loadimpact)
+[![PyPI](https://img.shields.io/pypi/v/loadimpact.svg)]() [![PyPI](https://img.shields.io/pypi/dm/loadimpact.svg)]()
 
 ## Creating an API client
 
