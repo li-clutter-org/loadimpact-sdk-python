@@ -15,7 +15,7 @@ Install using `pip`:
 ```sh
 pip install loadimpact
 ```
-[![Latest PyPI Version](https://pypip.in/v/loadimpact/badge.png)](https://pypi.python.org/pypi/loadimpact) [![PyPI Downloads](https://pypip.in/d/loadimpact/badge.png)](https://pypi.python.org/pypi/loadimpact)
+[![PyPI](https://img.shields.io/pypi/v/loadimpact.svg)]() [![PyPI](https://img.shields.io/pypi/dm/loadimpact.svg)]()
 
 ## Creating an API client
 
@@ -46,7 +46,7 @@ client = loadimpact.ApiTokenClient()
 configs = client.list_test_configs()
 ```
 
-### Get a specific test configurations
+### Get a specific test configuration
 ```python
 test_config_id = 1
 config = client.get_test_config(test_config_id)
@@ -60,18 +60,19 @@ config = client.create_test_config({
     'name': 'My test configuration',
     'url': 'http://example.com/',
     'config': {
+        "user_type": "sbu",
         "load_schedule": [{"users": 10, "duration": 10}],
         "tracks": [{
             "clips": [{
                 "user_scenario_id": 1, "percent": 100
             }],
-            "loadzone": LoadZone.name_to_id(LoadZone.AMAZON_US_ASHBURN)
+            "loadzone": LoadZone.AMAZON_US_ASHBURN
         }]
     }
 })
 ```
 
-The available load zone are as follows:
+The available load zones are as follows:
 ```python
 # Amazon load zones
 LoadZone.AMAZON_US_ASHBURN

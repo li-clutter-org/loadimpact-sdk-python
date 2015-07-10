@@ -57,11 +57,11 @@ class MockClient(Client):
         if isinstance(kwargs.get('data'), str):
             self.last_request_kwargs['data'] = json.loads(kwargs['data'])
         nkwargs = {}
-        if kwargs.get('data'):
-            if isinstance(kwargs['data'], dict):
-                nkwargs = kwargs['data']
-            elif isinstance(kwargs['data'], str):
-                nkwargs = json.loads(kwargs['data'])
+        if self.kwargs.get('response_body'):
+            if isinstance(self.kwargs['response_body'], dict):
+                nkwargs = self.kwargs['response_body']
+            elif isinstance(self.kwargs['response_body'], str):
+                nkwargs = json.loads(self.kwargs['response_body'])
         return MockRequestsResponse(status_code=self.response_status_code,
                                     **nkwargs)
 
@@ -78,6 +78,7 @@ class MockResource(Resource):
 class TestResourcesResource(unittest.TestCase):
     def test___getattr__(self):
         r = MockResource(None, IntegerField, 0)
+
         def raises():
             r.field2
         self.assertRaises(AttributeError, raises)
@@ -85,13 +86,13 @@ class TestResourcesResource(unittest.TestCase):
     def test__path(self):
         self.assertEqual(MockResource._path(), MockResource.resource_name)
         self.assertEqual(MockResource._path(resource_id=None),
-                          MockResource.resource_name)
+                         MockResource.resource_name)
         self.assertEqual(MockResource._path(resource_id=0),
-                          '%s/%s' % (MockResource.resource_name, 0))
+                         '%s/%s' % (MockResource.resource_name, 0))
         self.assertEqual(MockResource._path(resource_id=1),
-                          '%s/%s' % (MockResource.resource_name, 1))
+                         '%s/%s' % (MockResource.resource_name, 1))
         self.assertEqual(MockResource._path(resource_id=1, action='action'),
-                          '%s/%s/%s' % (MockResource.resource_name, 1, 'action'))
+                         '%s/%s/%s' % (MockResource.resource_name, 1, 'action'))
 
 
 class TestResourcesDataStore(unittest.TestCase):
@@ -215,13 +216,14 @@ class TestResourcesTest(unittest.TestCase):
         self.assertTrue(isinstance(
             result_stream, _TestResultStream))
         self.assertEqual(result_stream.test, test)
-        self.assertEqual(result_stream.result_ids,
-            [TestResult.result_id_from_name(
+        self.assertEqual(result_stream.result_ids, [
+            TestResult.result_id_from_name(
                 TestResult.USER_LOAD_TIME,
                 load_zone_id=LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD)),
-             TestResult.result_id_from_name(
+            TestResult.result_id_from_name(
                 TestResult.ACTIVE_USERS,
-                load_zone_id=LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD))])
+                load_zone_id=LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD))
+        ])
 
     def test_status_code_to_text(self):
         self.assertEqual(
@@ -240,7 +242,7 @@ class TestResourcesTest(unittest.TestCase):
             Test.status_code_to_text(Test.STATUS_ABORTING_USER),
             'aborting (by user)')
         self.assertEqual(Test.status_code_to_text(Test.STATUS_ABORTED_USER),
-            'aborted (by user)')
+                         'aborted (by user)')
         self.assertEqual(
             Test.status_code_to_text(Test.STATUS_ABORTING_SYSTEM),
             'aborting (by system)')
@@ -261,18 +263,18 @@ class TestResourcesTest(unittest.TestCase):
 class TestResourcesTestResult(unittest.TestCase):
     def test_result_id_from_name_with_name(self):
         self.assertEqual(TestResult.result_id_from_name('__li_user_load_time'),
-                          '__li_user_load_time')
+                         '__li_user_load_time')
 
     def test_result_id_from_name_with_name_load_zone(self):
         self.assertEqual(TestResult.result_id_from_name('__li_user_load_time',
-                                                         load_zone_id=1),
-                          '__li_user_load_time:1')
+                                                        load_zone_id=1),
+                         '__li_user_load_time:1')
 
     def test_result_id_from_name_with_name_load_zone_user_scenario(self):
         self.assertEqual(TestResult.result_id_from_name('__li_user_load_time',
-                                                         load_zone_id=1,
-                                                         user_scenario_id=1),
-                          '__li_user_load_time:1:1')
+                                                        load_zone_id=1,
+                                                        user_scenario_id=1),
+                         '__li_user_load_time:1:1')
 
     def test_result_id_from_custom_metric_name(self):
         name = 'my metric'
@@ -319,6 +321,7 @@ class TestResourcesTestConfig(unittest.TestCase):
 
     def test_user_type_setter_valueerror(self):
         c = TestConfig(self.client)
+
         def assign_bad_user_type():
             c.user_type = 'something bad'
         self.assertRaises(ValueError, assign_bad_user_type)
@@ -334,11 +337,12 @@ class TestResourcesTestConfig(unittest.TestCase):
 
     def test_update_with_dict(self):
         name_change = 'Test Config'
-        test_config = TestConfig(self.client)
+        client = MockClient(response_body={'name': name_change})
+        test_config = TestConfig(client)
         test_config.update({'name': name_change})
 
-        self.assertEqual(self.client.last_request_method, 'put')
-        self.assertEqual(self.client.last_request_kwargs['data']['name'],
+        self.assertEqual(client.last_request_method, 'put')
+        self.assertEqual(client.last_request_kwargs['data']['name'],
                          name_change)
         self.assertEqual(test_config.name, name_change)
 
@@ -358,6 +362,14 @@ class TestResourcesUserScenario(unittest.TestCase):
     def setUp(self):
         self.client = MockClient()
 
+    def test_get(self):
+        client = MockClient(response_body={
+            'data_stores': [{'id': 1}, {'id': 2}]
+        })
+        user_scenario = client.get_user_scenario(1)
+        self.assertEqual(client.last_request_method, 'get')
+        self.assertEqual(user_scenario.data_stores, [1, 2])
+
     def test_clone(self):
         name = 'Cloned User Scenario'
         user_scenario = UserScenario(self.client)
@@ -369,11 +381,12 @@ class TestResourcesUserScenario(unittest.TestCase):
 
     def test_update_with_dict(self):
         name_change = 'Test User Scenario'
-        user_scenario = UserScenario(self.client)
+        client = MockClient(response_body={'name': name_change})
+        user_scenario = UserScenario(client)
         user_scenario.update({'name': name_change})
 
-        self.assertEqual(self.client.last_request_method, 'put')
-        self.assertEqual(self.client.last_request_kwargs['data']['name'],
+        self.assertEqual(client.last_request_method, 'put')
+        self.assertEqual(client.last_request_kwargs['data']['name'],
                          name_change)
         self.assertEqual(user_scenario.name, name_change)
 

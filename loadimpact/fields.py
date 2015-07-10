@@ -1,7 +1,7 @@
 # coding=utf-8
 
 """
-Copyright 2013 Load Impact
+Copyright 2015 Load Impact
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -170,3 +170,19 @@ class ObjectField(Field):
             return cls.field_type(value)
         except ValueError as e:
             raise CoercionError(e)
+
+
+class DataStoreListField(Field):
+    field_type = list
+
+    @classmethod
+    def coerce(cls, value):
+        if not isinstance(value, cls.field_type):
+            raise CoercionError("'%s' is not a list" % repr(value))
+        r = []
+        for ds in value:
+            if isinstance(ds, dict) and 'id' in ds:
+                r.append(ds['id'])
+            elif isinstance(ds, int):
+                r.append(ds)
+        return r
