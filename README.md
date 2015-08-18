@@ -61,7 +61,7 @@ config = client.create_test_config({
     'url': 'http://example.com/',
     'config': {
         "user_type": "sbu",
-        "load_schedule": [{"users": 10, "duration": 10}],
+        "load_schedule": [{"users": 10, "duration": 10}],  # The unit of "duration" is minutes
         "tracks": [{
             "clips": [{
                 "user_scenario_id": 1, "percent": 100
