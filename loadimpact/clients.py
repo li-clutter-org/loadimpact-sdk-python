@@ -226,7 +226,7 @@ class Client(object):
                 error = response.json()
                 msg = "%s (%s)" % (error['message'], response.url)
             except KeyError:
-                msg = response.url
+                msg = "%s (%s)" % (response.text, response.url)
 
             if status_code in self.__class__.error_classes:
                 raise self.__class__.error_classes[status_code](

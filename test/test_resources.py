@@ -33,6 +33,7 @@ class MockRequestsResponse(object):
     def __init__(self, status_code=200, **kwargs):
         self.url = 'http://example.com/'
         self.status_code = status_code
+        self.text = ''
         self.kwargs = kwargs
         for k, v in kwargs.items():
             setattr(self, k, v)

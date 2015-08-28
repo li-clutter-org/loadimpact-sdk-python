@@ -61,10 +61,10 @@ config = client.create_test_config({
     'url': 'http://example.com/',
     'config': {
         "user_type": "sbu",
-        "load_schedule": [{"users": 10, "duration": 10}],
+        "load_schedule": [{"users": 10, "duration": 10}],  # The unit of "duration" is minutes
         "tracks": [{
             "clips": [{
-                "user_scenario_id": 1, "percent": 100
+                "user_scenario_id": 1, "percent": 100  # You need a user scenario before you can create a test config, see below code snippet for how to create a user scenario
             }],
             "loadzone": LoadZone.AMAZON_US_ASHBURN
         }]
