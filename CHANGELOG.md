@@ -1,5 +1,29 @@
 # Changelog
 
+## v1.1.4 (2015-09-29)
+
+- Fix data store create doc bug in README.
+- Set content type header on PUT requests.
+- Default to show full API response message on error response.
+
+## v1.1.3 (2015-08-28)
+
+- Clarify unit of duration property when creating test config.
+- Better handling of error messages from API.
+- Add comment about need for user scenario in test config to README.
+- Fix failing tests.
+
+## v1.1.2 (2015-07-10)
+
+- Add setup.cfg.
+
+## v1.1.1 (2015-07-10)
+
+- Fix inconsistency in representation of data stores attached to a user scenario.
+- Fix PyPI badges.
+- Added missing "user_type" parameter in the create_test_config() example in README.
+- Fix doc error how to specify load zone in test config.
+
 ## v1.1.0 (2013-11-05)
 
 - Added missing client.get_test(test_id) and client.list_tests() methods.
