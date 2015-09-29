@@ -222,11 +222,7 @@ class Client(object):
         status_code = response.status_code
 
         if 399 < status_code and 600 > status_code:
-            try:
-                error = response.json()
-                msg = "%s (%s)" % (error['message'], response.url)
-            except KeyError:
-                msg = "%s (%s)" % (response.text, response.url)
+            msg = "%s (%s)" % (response.text, response.url)
 
             if status_code in self.__class__.error_classes:
                 raise self.__class__.error_classes[status_code](

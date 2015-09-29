@@ -345,6 +345,8 @@ class TestResourcesTestConfig(unittest.TestCase):
         self.assertEqual(client.last_request_method, 'put')
         self.assertEqual(client.last_request_kwargs['data']['name'],
                          name_change)
+        self.assertEqual(client.last_request_kwargs['headers']['Content-Type'],
+                         'application/json')
         self.assertEqual(test_config.name, name_change)
 
     def test_update_with_attribute(self):
@@ -356,6 +358,8 @@ class TestResourcesTestConfig(unittest.TestCase):
         self.assertEqual(self.client.last_request_method, 'put')
         self.assertEqual(self.client.last_request_kwargs['data']['name'],
                          name_change)
+        self.assertEqual(self.client.last_request_kwargs['headers']['Content-Type'],
+                         'application/json')
         self.assertEqual(test_config.name, name_change)
 
 
@@ -389,6 +393,8 @@ class TestResourcesUserScenario(unittest.TestCase):
         self.assertEqual(client.last_request_method, 'put')
         self.assertEqual(client.last_request_kwargs['data']['name'],
                          name_change)
+        self.assertEqual(client.last_request_kwargs['headers']['Content-Type'],
+                         'application/json')
         self.assertEqual(user_scenario.name, name_change)
 
     def test_update_with_attribute(self):
@@ -400,6 +406,8 @@ class TestResourcesUserScenario(unittest.TestCase):
         self.assertEqual(self.client.last_request_method, 'put')
         self.assertEqual(self.client.last_request_kwargs['data']['name'],
                          name_change)
+        self.assertEqual(self.client.last_request_kwargs['headers']['Content-Type'],
+                         'application/json')
         self.assertEqual(user_scenario.name, name_change)
 
 
