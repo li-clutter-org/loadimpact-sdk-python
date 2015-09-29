@@ -127,12 +127,15 @@ class DeleteMixin(object):
 
 
 class UpdateMixin(object):
+    update_content_type = 'application/json'
+
     def update(self, data=None):
         if data:
             if isinstance(data, str):
                 data = json.loads(data)
             self._set_fields(data)
 
+        headers = {'Content-Type': self.__class__.update_content_type}
         data = {}
         fields = self.__class__.fields
         for k, f in fields.items():
@@ -140,7 +143,7 @@ class UpdateMixin(object):
                 data[k] = getattr(self, k)
 
         response = self.client.put(self.__class__._path(resource_id=self.id),
-                                   data=json.dumps(data))
+                                   headers=headers, data=json.dumps(data))
         try:
             self._set_fields(response.json())
         except CoercionError as e:
