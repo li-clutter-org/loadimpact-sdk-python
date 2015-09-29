@@ -183,7 +183,7 @@ fil_obj = open('data.csv', 'r')
 data_store = client.create_data_store({
     'name': "My data store",
     'separator': 'comma',
-    'delimeter': 'double'
+    'delimiter': 'double'
 }, file_obj)
 while not data_store.has_conversion_finished():
     time.sleep(3)
