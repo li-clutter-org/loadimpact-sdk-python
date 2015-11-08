@@ -3,6 +3,10 @@
 *.pyo
 build/
 
+.coverage
+htmlcov/
+loadimpact.egg-info/
+
 # MacOSX
 .DS_Store
 ._*

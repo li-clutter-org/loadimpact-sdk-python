@@ -37,6 +37,7 @@ setup(
     license='LICENSE.txt',
     description="The Load Impact SDK provides access to Load Impact's cloud-based performance testing platform",
     install_requires=['requests'],
+    test_requires=['coverage'],
     classifiers=[
         'Intended Audience :: Developers',
         'Natural Language :: English',
