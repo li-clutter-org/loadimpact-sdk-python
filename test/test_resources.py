@@ -290,7 +290,7 @@ class TestResourcesTestResult(unittest.TestCase):
         result_id = TestResult.result_id_for_page(name, 1, 1)
         if sys.version_info >= (3, 0) and isinstance(name, str):
             name = name.encode('utf-8')
-        self.assertEqual(result_id, '__li_page%s:1:1'
+        self.assertEqual(result_id, '__li_page_%s:1:1'
                                     % hashlib.md5(name).hexdigest())
 
     def test_result_id_for_url(self):
@@ -299,7 +299,7 @@ class TestResourcesTestResult(unittest.TestCase):
                                                  status_code=200)
         if sys.version_info >= (3, 0) and isinstance(url, str):
             url = url.encode('utf-8')
-        self.assertEqual(result_id, '__li_url%s:1:1:200:GET'
+        self.assertEqual(result_id, '__li_url_%s:1:1:200:GET'
                                     % hashlib.md5(url).hexdigest())
 
 
