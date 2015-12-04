@@ -314,8 +314,8 @@ class TestResult(object):
         else:
             if isinstance(page_name, unicode):
                 page_name = page_name.encode('utf-8')
-        return '__li_page%s:%s:%s' % (hashlib.md5(page_name).hexdigest(),
-                                      str(load_zone_id), str(user_scenario_id))
+        return '__li_page_%s:%s:%s' % (hashlib.md5(page_name).hexdigest(),
+                                       str(load_zone_id), str(user_scenario_id))
 
     @classmethod
     def result_id_for_url(cls, url, load_zone_id, user_scenario_id,
@@ -325,10 +325,10 @@ class TestResult(object):
         else:
             if isinstance(url, unicode):
                 url = url.encode('utf-8')
-        return '__li_url%s:%s:%s:%s:%s' % (hashlib.md5(url).hexdigest(),
-                                           str(load_zone_id),
-                                           str(user_scenario_id),
-                                           str(status_code), method)
+        return '__li_url_%s:%s:%s:%s:%s' % (hashlib.md5(url).hexdigest(),
+                                            str(load_zone_id),
+                                            str(user_scenario_id),
+                                            str(status_code), method)
 
 
 class _TestResultStream(Resource):
