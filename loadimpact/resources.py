@@ -28,7 +28,7 @@ import sys
 from .exceptions import CoercionError, ConflictError, ResponseParseError
 from .fields import (
     DataStoreListField, DateTimeField, DictField, Field, IntegerField,
-    StringField, UnicodeField)
+    UnicodeField, BooleanField)
 from pprint import pformat
 from time import sleep
 from .utils import is_dict_different
@@ -78,6 +78,15 @@ class Resource(object):
             else:
                 self._fields[k] = f(data.get(k, f.default()))
 
+    def _update_fields(self, data):
+        fields = self.__class__.fields
+        for k, f in data.items():
+            if isinstance(fields.get(k), tuple):
+                fun, opts = fields.get(k)
+                self._fields[k] = fun(data.get(k, fun.default()), options=opts)
+            else:
+                self._fields[k] = f(data.get(k, f.default()))
+
 
 class GetMixin(object):
     @classmethod
@@ -85,7 +94,10 @@ class GetMixin(object):
         response = client.get(cls._path(resource_id))
         try:
             instance = cls(client)
-            instance._set_fields(response.json())
+            name = cls.resource_response_object_name
+            r = response.json()
+            r_obj = r.get(name)
+            instance._set_fields(r_obj)
             return instance
         except CoercionError as e:
             raise ResponseParseError(e)
@@ -111,7 +123,10 @@ class CreateMixin(object):
                                file_object=file_object)
         try:
             instance = cls(client)
-            instance._set_fields(response.json())
+            name = cls.resource_response_object_name
+            r = response.json()
+            r_obj = r.get(name)
+            instance._set_fields(r_obj)
             return instance
         except CoercionError as e:
             raise ResponseParseError(e)
@@ -133,7 +148,7 @@ class UpdateMixin(object):
         if data:
             if isinstance(data, str):
                 data = json.loads(data)
-            self._set_fields(data)
+            self._update_fields(data)
 
         headers = {'Content-Type': self.__class__.update_content_type}
         data = {}
@@ -631,14 +646,21 @@ class TestConfig(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
 class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
                    UpdateMixin):
     resource_name = 'user-scenarios'
+    resource_response_object_name = 'user_scenario'
     fields = {
-        'id': IntegerField,
         'name': (UnicodeField, Field.SERIALIZE),
-        'script_type': StringField,
-        'load_script': (UnicodeField, Field.SERIALIZE),
-        'data_stores': (DataStoreListField, Field.SERIALIZE),
+        'script': (UnicodeField, Field.SERIALIZE),
+        'data_store_ids': (DataStoreListField, Field.SERIALIZE),
         'created': DateTimeField,
-        'updated': DateTimeField
+        'updated': DateTimeField,
+        'last_validation_id': IntegerField,
+        'last_validated': DateTimeField,
+        'lines': IntegerField,
+        'data_store_counter': IntegerField,
+        'last_validation_error': (UnicodeField, Field.SERIALIZE),
+        'belongs_to_user': BooleanField,
+        'project_id': IntegerField,
+        'id': IntegerField
     }
 
     def clone(self, name):
@@ -659,7 +681,8 @@ class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
 
 
 class _UserScenarioValidationResultStream(Resource):
-    resource_name = 'user-scenario-validations'
+    resource_name = 'validations'
+    resource_response_object_name = 'user_scenario_validation_results'
 
     def __init__(self, validation):
         self.validation = validation
@@ -673,9 +696,13 @@ class _UserScenarioValidationResultStream(Resource):
         while not self.is_done():
             path = self.__class__._path(
                 resource_id=self.validation.id, action='results')
-            response = self.validation.client.get(
-                path, params={'offset': self.last_offset})
-            results = response.json()
+            response = self.validation.client.get(path, params={'offset': self.last_offset})
+            r = response.json()
+
+            # We want to side load this in the API
+            validation = r.get('user_scenario_validation', None)
+            results = r.get('user_scenario_validation_results', None)
+
             self.status = results.get('status', self.status)
             self.status_text = UserScenarioValidation.status_code_to_text(
                 self.status)
@@ -705,16 +732,18 @@ class _UserScenarioValidationResultStream(Resource):
 
 
 class UserScenarioValidation(Resource, GetMixin, CreateMixin):
-    resource_name = 'user-scenario-validations'
+    resource_name = 'validations'
+    resource_response_object_name = 'user_scenario_validation'
     fields = {
         'id': IntegerField,
         'user_scenario_id': IntegerField,
         'status': IntegerField,
         'status_text': UnicodeField,
-        'created': DateTimeField,
+        'queued': DateTimeField,
         'started': DateTimeField,
         'ended': DateTimeField
     }
+
     stream_class = _UserScenarioValidationResultStream
 
     # Validation status codes

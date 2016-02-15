@@ -80,8 +80,8 @@ class DateTimeField(Field):
     def coerce(cls, value):
         if not isinstance(value, cls.field_type):
             try:
-                return datetime.strptime(value[:-6], cls.format).replace(
-                    tzinfo=UTC())
+                return datetime.strptime(value[:-7], cls.format).replace(tzinfo=UTC())
+
             except ValueError as e:
                 raise CoercionError(e)
         return value
@@ -186,3 +186,14 @@ class DataStoreListField(Field):
             elif isinstance(ds, int):
                 r.append(ds)
         return r
+
+
+class BooleanField(Field):
+    field_type = bool
+
+    @classmethod
+    def coerce(cls, value):
+        try:
+            return cls.field_type(value)
+        except ValueError as e:
+            raise CoercionError(e)

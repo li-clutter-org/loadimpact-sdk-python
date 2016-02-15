@@ -64,7 +64,7 @@ class Client(object):
     """Base client class handling all communication with the Load Impact REST
     API, using simple API token based authentication."""
 
-    api_base_url = 'https://api.loadimpact.com/v2/'
+    api_base_url = 'https://api.loadimpact.com/v3/'
     default_timeout = 30
     error_classes = {
         400: BadRequestError,
