@@ -41,99 +41,6 @@ client = loadimpact.ApiTokenClient()
 
 ## Using an API client
 
-### List test configurations
-```python
-configs = client.list_test_configs()
-```
-
-### Get a specific test configuration
-```python
-test_config_id = 1
-config = client.get_test_config(test_config_id)
-```
-
-### Create a new test configuration
-```python
-from loadimpact import LoadZone
-
-config = client.create_test_config({
-    'name': 'My test configuration',
-    'url': 'http://example.com/',
-    'config': {
-        "user_type": "sbu",
-        "load_schedule": [{"users": 10, "duration": 10}],  # The unit of "duration" is minutes
-        "tracks": [{
-            "clips": [{
-                "user_scenario_id": 1, "percent": 100  # You need a user scenario before you can create a test config, see below code snippet for how to create a user scenario
-            }],
-            "loadzone": LoadZone.AMAZON_US_ASHBURN
-        }]
-    }
-})
-```
-
-The available load zones are as follows:
-```python
-# Amazon load zones
-LoadZone.AMAZON_US_ASHBURN
-LoadZone.AMAZON_US_ASHBURN
-LoadZone.AMAZON_US_PALOALTO
-LoadZone.AMAZON_IE_DUBLIN
-LoadZone.AMAZON_SG_SINGAPORE
-LoadZone.AMAZON_JP_TOKYO
-LoadZone.AMAZON_US_PORTLAND
-LoadZone.AMAZON_BR_SAOPAULO
-LoadZone.AMAZON_AU_SYDNEY
-
-# Rackspace load zones
-LoadZone.RACKSPACE_US_CHICAGO
-LoadZone.RACKSPACE_US_DALLAS
-LoadZone.RACKSPACE_UK_LONDON
-LoadZone.RACKSPACE_AU_SYDNEY
-```
-
-### Update an existing test configuration
-```python
-config = client.get_test_config(1)
-config.name = "Changed name"
-config.update()
-```
-
-or
-
-```python
-config = client.get_test_config(1)
-config.update({'name': "Changed name"})
-```
-
-### Delete config
-```python
-config = client.get_test_config(1)
-config.delete()
-```
-
-Deleting data stores and user scenarios is done in the same way, calling a
-delete method on the resource object.
-
-### Run test and stream results to STDOUT
-```python
-from loadimpact import TestResult
-
-test_config = client.get_test_config(1)
-test = test_config.start_test()
-stream = test.result_stream([
-    TestResult.result_id_from_name(TestResult.LIVE_FEEDBACK),
-    TestResult.result_id_from_name(TestResult.ACTIVE_USERS,
-                                   load_zone_id=world_id),
-    TestResult.result_id_from_name(TestResult.REQUESTS_PER_SECOND,
-                                   load_zone_id=world_id),
-    TestResult.result_id_from_name(TestResult.USER_LOAD_TIME,
-                                   load_zone_id=world_id)])
-
-for data in stream(poll_rate=3):
-    print data[TestResult.result_id_from_name(TestResult.LIVE_FEEDBACK)]
-    time.sleep(3)
-```
 
 ### Create a new user scenario
 ```python
@@ -152,25 +59,21 @@ user_scenario = client.create_user_scenario({
 ```python
 from loadimpact import UserScenarioValidation
 
-user_scenario_id = 1
-user_scenario = client.get_user_scenario(user_scenario_id)
+scenario_id = 1
+user_scenario = client.get_user_scenario(scenario_id)
 validation = user_scenario.validate()
-stream = validation.result_stream()
+poll_rate = 10
 
-print("Starting validation #%d..." % (validation.id,))
-for result in stream:
-    if 'stack_trace' in result:
-        print('[%s]: %s @ line %s'
-              % (result['timestamp'], result['message'],
-                 result['line_number']))
-        print('Stack trace:')
-        for filename, line, function in result['stack_trace']:
-            print('\t%s:%s in %s' % (function, line, filename))
-    else:
-        print('[%s]: %s' % (result['timestamp'], result['message']))
-print("Validation completed with status '%s'"
-      % (UserScenarioValidation.status_code_to_text(validation.status)))
-```
+while not validation.is_done():
+    validation = client.get_user_scenario_validation(validation.id)
+    sleep(poll_rate)
+
+validation_results = client.get_user_scenario_validation_result(validation.id)
+
+for result in validation_results:
+    print("[{0}] {1}".format(result.timestamp, result.message))
+
+print("Validation completed with status: {0}".format(validation.status_text))
 
 ### Uploading a data store (CSV file with parameterization data)
 For more information regarding parameterized data have a look at [this

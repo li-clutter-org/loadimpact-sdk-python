@@ -22,8 +22,7 @@ from datetime import datetime
 from loadimpact.clients import Client
 from loadimpact.exceptions import CoercionError
 from loadimpact.fields import (
-    Field, DataStoreListField, DateTimeField, DictField, IntegerField,
-    StringField)
+    Field, DataStoreListField, DateTimeField, IntegerField)
 from loadimpact.resources import Resource
 from loadimpact.utils import UTC
 
@@ -69,7 +68,7 @@ class TestFieldsDateTimeField(unittest.TestCase):
         self.client = MockClient()
 
     def test_coerce(self):
-        value = '%s+00:00' % self.now.strftime(DateTimeField.format)
+        value = '%s+00:00.' % self.now.strftime(DateTimeField.format)
         coerced = DateTimeField.coerce(value)
         self.assertEqual(coerced, self.now)
 
@@ -81,7 +80,7 @@ class TestFieldsDateTimeField(unittest.TestCase):
                           DateTimeField, '2013-01-01')
 
     def test_get(self):
-        value = '%s+00:00' % self.now.strftime(DateTimeField.format)
+        value = '%s+00:00.' % self.now.strftime(DateTimeField.format)
         r = MockResource(self.client, DateTimeField, value)
         self.assertEqual(r.field, self.now)
 

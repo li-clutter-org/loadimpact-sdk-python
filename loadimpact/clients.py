@@ -35,7 +35,8 @@ from .exceptions import (
     MissingApiTokenError, NotFoundError, RateLimitError, ServerError,
     TimeoutError, UnauthorizedError)
 from .resources import (
-    DataStore, Test, TestConfig, UserScenario, UserScenarioValidation)
+    DataStore, UserScenario, UserScenarioValidation,
+    UserScenarioValidationResult, Organization, OrganizationProject)
 
 try:
     from urlparse import urljoin
@@ -94,21 +95,6 @@ class Client(object):
     def list_data_stores(self):
         return DataStore.list(self)
 
-    def get_test(self, resource_id):
-        return Test.get(self, resource_id)
-
-    def list_tests(self):
-        return Test.list(self)
-
-    def create_test_config(self, data):
-        return TestConfig.create(self, data)
-
-    def get_test_config(self, resource_id):
-        return TestConfig.get(self, resource_id)
-
-    def list_test_configs(self):
-        return TestConfig.list(self)
-
     def create_user_scenario(self, data):
         return UserScenario.create(self, data)
 
@@ -120,6 +106,18 @@ class Client(object):
 
     def create_user_scenario_validation(self, data):
         return UserScenarioValidation.create(self, data)
+
+    def get_user_scenario_validation(self, resource_id):
+        return UserScenarioValidation.get(self, resource_id)
+
+    def get_user_scenario_validation_result(self, resource_id):
+        return UserScenarioValidationResult.list(self, resource_id)
+
+    def list_organizations(self):
+        return Organization.list(self)
+
+    def list_organization_projects(self, org_id):
+        return OrganizationProject.list(self, org_id)
 
     @requests_exceptions_handling
     def delete(self, path, headers=None, params=None):
