@@ -28,6 +28,7 @@ except ImportError:
 import os
 import platform
 import requests
+from six import raise_from
 
 from .exceptions import (
     ApiError, BadRequestError, ConflictError, ConnectionError, ClientError,
@@ -51,9 +52,9 @@ def requests_exceptions_handling(func):
         try:
             return func(*args, **kwargs)
         except requests.exceptions.ConnectionError as e:
-            raise ConnectionError(str(e))
+            raise_from(ConnectionError(str(e)), None)
         except requests.exceptions.HTTPError as e:
-            raise HTTPError(str(e))
+            raise_from(HTTPError(str(e)), None)
         except requests.exceptions.Timeout as e:
             raise TimeoutError(str(e))
         except requests.exceptions.RequestException as e:
@@ -101,8 +102,8 @@ class Client(object):
     def get_user_scenario(self, resource_id):
         return UserScenario.get(self, resource_id)
 
-    def list_user_scenarios(self):
-        return UserScenario.list(self)
+    def list_user_scenarios(self, resource_id):
+        return UserScenario.list(self, resource_id)
 
     def create_user_scenario_validation(self, data):
         return UserScenarioValidation.create(self, data)

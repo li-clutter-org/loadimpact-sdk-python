@@ -152,7 +152,6 @@ class UpdateMixin(object):
         for k, f in fields.items():
             if self._fields[k].has_option(Field.SERIALIZE):
                 data[k] = getattr(self, k)
-
         response = self.client.put(self.__class__._path(resource_id=self.id),
                                    headers=headers, data=json.dumps(data))
         try:
@@ -165,13 +164,10 @@ class ListMixin(object):
 
     @classmethod
     def list(cls, client, resource_id=None):
-        if resource_id:
-            response = client.get(cls._path(resource_id))
-        else:
-            response = client.get(cls._path())
+        response = client.get(cls._path(resource_id=resource_id))
         objects = []
         try:
-            name = cls.resource_response_object_name
+            name = cls.resource_response_objects_name
             r = response.json()
             r_obj = r.get(name)
             for obj in r_obj:
@@ -186,6 +182,7 @@ class ListMixin(object):
 class DataStore(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
     resource_name = 'data-stores'
     resource_response_object_name = 'data_store'
+    resource_response_objects_name = 'data_store'
     fields = {
         'id': IntegerField,
         'name': UnicodeField,
@@ -194,7 +191,7 @@ class DataStore(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
         'created': DateTimeField,
         'belongs_to_user': BooleanField,
         'project_id': IntegerField,
-        "converted": BooleanField,
+        'converted': BooleanField,
     }
 
     # Data store conversion status codes
@@ -291,6 +288,7 @@ class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
                    UpdateMixin):
     resource_name = 'user-scenarios'
     resource_response_object_name = 'user_scenario'
+    resource_response_objects_name = 'user_scenarios'
     fields = {
         'name': (UnicodeField, Field.SERIALIZE),
         'script': (UnicodeField, Field.SERIALIZE),
@@ -307,17 +305,11 @@ class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
         'id': IntegerField
     }
 
-    def clone(self, name):
-        headers = {'Content-Type': self.__class__.create_content_type}
-        response = self.client.post(
-            self.__class__._path(resource_id=self.id, action='clone'),
-            headers=headers, data={'name': name})
-        try:
-            instance = self.__class__(self.client)
-            instance._set_fields(response.json())
-            return instance
-        except CoercionError as e:
-            raise ResponseParseError(e)
+    @classmethod
+    def _path(cls, resource_id=None):
+        if project_id:
+            return '{0}?project_id={1}'.format(cls.resource_name, resource_id)
+        return super(UserScenario, cls)._path(resource_id)
 
     def validate(self):
         return self.client.create_user_scenario_validation(
@@ -327,14 +319,15 @@ class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
 class UserScenarioValidationResult(Resource, ListMixin):
     resource_name = 'validations'
     resource_response_object_name = 'user_scenario_validation_results'
+    resource_response_objects_name = 'user_scenario_validation_results'
 
     fields = {
         'user_scenario_validation_id': IntegerField,
-        "type": IntegerField,
-        "offset": IntegerField,
-        "level": (UnicodeField, Field.SERIALIZE),
-        "message": (UnicodeField, Field.SERIALIZE),
-        "timestamp": DateTimeField
+        'type': IntegerField,
+        'offset': IntegerField,
+        'level': (UnicodeField, Field.SERIALIZE),
+        'message': (UnicodeField, Field.SERIALIZE),
+        'timestamp': DateTimeField
     }
 
     @classmethod
@@ -394,7 +387,8 @@ class UserScenarioValidation(Resource, GetMixin, CreateMixin):
 
 class Organization(Resource, ListMixin):
     resource_name = 'organizations'
-    resource_response_object_name = 'organizations'
+    resource_response_object_name = 'organization'
+    resource_response_objects_name = 'organizations'
     fields = {
         'name': (UnicodeField, Field.SERIALIZE),
         'id': IntegerField
@@ -403,7 +397,8 @@ class Organization(Resource, ListMixin):
 
 class OrganizationProject(Resource, ListMixin):
     resource_name = 'organizations'
-    resource_response_object_name = 'projects'
+    resource_response_object_name = 'project'
+    resource_response_objects_name = 'projects'
     fields = {
         'name': (UnicodeField, Field.SERIALIZE),
         'id': IntegerField

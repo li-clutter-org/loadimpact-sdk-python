@@ -154,15 +154,6 @@ class TestResourcesUserScenario(unittest.TestCase):
         self.assertEqual(user_scenario.id, 1)
         self.assertEqual(user_scenario.name, 'My test user scenario')
 
-    def test_clone(self):
-        name = 'Cloned User Scenario'
-        user_scenario = UserScenario(self.client)
-        user_scenario_clone = user_scenario.clone(name)
-        self.assertEqual(self.client.last_request_method, 'post')
-        self.assertEqual(self.client.last_request_kwargs['data']['name'],
-                         name)
-        self.assertTrue(isinstance(user_scenario_clone, UserScenario))
-
     def test_update_with_dict(self):
         name_change = 'Test User Scenario'
         client = MockClient(response_body={'name': name_change})

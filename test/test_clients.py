@@ -193,8 +193,8 @@ class TestClientsClient(unittest.TestCase):
         self.assertEqual(user_scenario.script, '')
 
     def test_list_user_scenarios(self):
-        client = MockClient(expecting_list=True, resource_type='user_scenario')
-        user_scenarios = client.list_user_scenarios()
+        client = MockClient(expecting_list=True, resource_type='user_scenarios')
+        user_scenarios = client.list_user_scenarios(project_id=1)
 
         self.assertEqual(client.last_request_method, 'get')
         self.assertEqual(len(user_scenarios), 1)
