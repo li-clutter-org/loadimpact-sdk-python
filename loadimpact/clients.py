@@ -102,8 +102,8 @@ class Client(object):
     def get_user_scenario(self, resource_id):
         return UserScenario.get(self, resource_id)
 
-    def list_user_scenarios(self, resource_id):
-        return UserScenario.list(self, resource_id)
+    def list_user_scenarios(self, project_id):
+        return UserScenario.list(self, project_id=project_id)
 
     def create_user_scenario_validation(self, data):
         return UserScenarioValidation.create(self, data)

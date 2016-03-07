@@ -163,8 +163,11 @@ class UpdateMixin(object):
 class ListMixin(object):
 
     @classmethod
-    def list(cls, client, resource_id=None):
-        response = client.get(cls._path(resource_id=resource_id))
+    def list(cls, client, resource_id=None, project_id=None):
+        if project_id:
+            cls.project_id = project_id
+        path = cls._path(resource_id=resource_id)
+        response = client.get(path)
         objects = []
         try:
             name = cls.resource_response_objects_name
@@ -289,6 +292,7 @@ class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
     resource_name = 'user-scenarios'
     resource_response_object_name = 'user_scenario'
     resource_response_objects_name = 'user_scenarios'
+    project_id = None
     fields = {
         'name': (UnicodeField, Field.SERIALIZE),
         'script': (UnicodeField, Field.SERIALIZE),
@@ -307,8 +311,8 @@ class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
 
     @classmethod
     def _path(cls, resource_id=None):
-        if project_id:
-            return '{0}?project_id={1}'.format(cls.resource_name, resource_id)
+        if cls.project_id:
+            return '{0}?project_id={1}'.format(cls.resource_name, cls.project_id)
         return super(UserScenario, cls)._path(resource_id)
 
     def validate(self):
