@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'loadimpact'))
 from version import __version__
 
 setup(
-    name='loadimpact',
+    name='loadimpact-v3',
     version=__version__,
     author='Load Impact',
     author_email='support@loadimpact.com',
