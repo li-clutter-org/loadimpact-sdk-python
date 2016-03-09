@@ -57,7 +57,7 @@ user_scenario = client.create_user_scenario({
 
 ### Validating a user scenario
 ```python
-from loadimpact import UserScenarioValidation
+from loadimpact3 import UserScenarioValidation
 
 scenario_id = 1
 user_scenario = client.get_user_scenario(scenario_id)
@@ -80,7 +80,7 @@ For more information regarding parameterized data have a look at [this
 knowledgebase article](http://support.loadimpact.com/knowledgebase/articles/174258-how-do-i-use-parameterized-data-).
 
 ```python
-from loadimpact import DataStore
+from loadimpact3 import DataStore
 
 fil_obj = open('data.csv', 'r')
 data_store = client.create_data_store({

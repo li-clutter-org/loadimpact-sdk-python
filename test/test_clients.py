@@ -20,13 +20,13 @@ import json
 import requests
 import unittest
 
-from loadimpact.clients import ApiTokenClient, Client
-from loadimpact.exceptions import (
+from loadimpact3.clients import ApiTokenClient, Client
+from loadimpact3.exceptions import (
     ApiError, BadRequestError, ClientError, ConnectionError,
     ForbiddenError, GoneError, HTTPError, MethodNotAllowedError,
     MissingApiTokenError, NotFoundError, RateLimitError, ServerError,
     TimeoutError, UnauthorizedError)
-from loadimpact.resources import DataStore
+from loadimpact3.resources import DataStore
 
 try:
     from StringIO import StringIO

@@ -19,12 +19,12 @@ limitations under the License.
 import unittest
 
 from datetime import datetime
-from loadimpact.clients import Client
-from loadimpact.exceptions import CoercionError
-from loadimpact.fields import (
+from loadimpact3.clients import Client
+from loadimpact3.exceptions import CoercionError
+from loadimpact3.fields import (
     Field, DataStoreListField, DateTimeField, IntegerField)
-from loadimpact.resources import Resource
-from loadimpact.utils import UTC
+from loadimpact3.resources import Resource
+from loadimpact3.utils import UTC
 
 
 class MockClient(Client):

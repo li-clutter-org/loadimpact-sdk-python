@@ -1,5 +1,5 @@
 # Changelog
 
-## v1.0.0 (2016-03-09)
+## v0.0.1 (2016-03-09)
 
 - First beta release using the v3 API.

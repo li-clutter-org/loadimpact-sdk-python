@@ -24,7 +24,7 @@ from setuptools import setup
 
 import os
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'loadimpact'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'loadimpact3'))
 from version import __version__
 
 setup(
@@ -32,7 +32,7 @@ setup(
     version=__version__,
     author='Load Impact',
     author_email='support@loadimpact.com',
-    packages=['loadimpact'],
+    packages=['loadimpact3'],
     py_modules=['ez_setup'],
     url='http://developers.loadimpact.com/',
     license='LICENSE.txt',

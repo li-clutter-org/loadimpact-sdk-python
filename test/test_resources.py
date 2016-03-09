@@ -19,9 +19,9 @@ limitations under the License.
 import json
 import unittest
 
-from loadimpact.clients import Client
-from loadimpact.fields import IntegerField
-from loadimpact.resources import (
+from loadimpact3.clients import Client
+from loadimpact3.fields import IntegerField
+from loadimpact3.resources import (
     DataStore, LoadZone, Resource, UserScenario, UserScenarioValidation)
 
 
