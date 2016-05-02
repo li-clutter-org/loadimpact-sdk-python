@@ -156,8 +156,8 @@ class TestClientsClient(unittest.TestCase):
         self.assertEqual(data_store.rows, 0)
 
     def test_list_data_stores(self):
-        client = MockClient(resource_type='data_store', expecting_list=True)
-        data_stores = client.list_data_stores()
+        client = MockClient(resource_type='data_stores', expecting_list=True)
+        data_stores = client.list_data_stores(project_id=1)
 
         self.assertEqual(client.last_request_method, 'get')
         self.assertEqual(len(data_stores), 1)

@@ -90,11 +90,14 @@ class Client(object):
     def create_data_store(self, data, file_object):
         return DataStore.create(self, data, file_object=file_object)
 
+    def update_data_store(self, resource_id, data, file_object):
+        return DataStore.update(self, resource_id, data, file_object=file_object)
+
     def get_data_store(self, resource_id):
         return DataStore.get(self, resource_id)
 
-    def list_data_stores(self):
-        return DataStore.list(self)
+    def list_data_stores(self, project_id):
+        return DataStore.list(self, project_id=project_id)
 
     def create_user_scenario(self, data):
         return UserScenario.create(self, data)

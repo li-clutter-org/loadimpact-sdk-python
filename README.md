@@ -3,6 +3,8 @@
 This Python SDK provides Python APIs to the Load Impact platform for running 
 and managing performance tests in the cloud.
 
+** Please note that this version of the SDK is in BETA and we are still working on being completely compatible with the version 3 Load Impact API. **
+
 ## Requirements
 
 The Load Impact Python SDK works with Python versions 2.6, 2.7, 3.2 and 3.3.
@@ -51,13 +53,15 @@ client.sleep(5)
 """
 user_scenario = client.create_user_scenario({
     'name': "My user scenario",
-    'load_script': load_script
+    'load_script': load_script,
+    'project_id': 1
 })
 ```
 
 ### Validating a user scenario
 ```python
 from loadimpact3 import UserScenarioValidation
+from time import sleep
 
 scenario_id = 1
 user_scenario = client.get_user_scenario(scenario_id)
@@ -81,15 +85,16 @@ knowledgebase article](http://support.loadimpact.com/knowledgebase/articles/1742
 
 ```python
 from loadimpact3 import DataStore
+from time import sleep
 
-fil_obj = open('data.csv', 'r')
+file_obj = open('data.csv', 'r')
 data_store = client.create_data_store({
     'name': "My data store",
     'separator': 'comma',
     'delimiter': 'double'
 }, file_obj)
 while not data_store.has_conversion_finished():
-    time.sleep(3)
+    sleep(3)
 print("Data store conversion completed with status '%s'"
       % (DataStore.status_code_to_text(data_store.status)))
 ```

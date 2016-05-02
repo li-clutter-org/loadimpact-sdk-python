@@ -74,15 +74,6 @@ class Resource(object):
             else:
                 self._fields[k] = f(data.get(k, f.default()))
 
-    def _update_fields(self, data):
-        fields = self.__class__.fields
-        for k, f in data.items():
-            if isinstance(fields.get(k), tuple):
-                fun, opts = fields.get(k)
-                self._fields[k] = fun(data.get(k, fun.default()), options=opts)
-            else:
-                self._fields[k] = f(data.get(k, f.default()))
-
 
 class GetMixin(object):
     @classmethod
@@ -95,13 +86,6 @@ class GetMixin(object):
             r_obj = r.get(name)
             instance._set_fields(r_obj)
             return instance
-        except CoercionError as e:
-            raise ResponseParseError(e)
-
-    def sync(self):
-        response = self.client.get(self.__class__._path(self.id))
-        try:
-            self._set_fields(response.json())
         except CoercionError as e:
             raise ResponseParseError(e)
 
@@ -138,24 +122,21 @@ class DeleteMixin(object):
 
 
 class UpdateMixin(object):
-    update_content_type = 'application/json'
 
-    def update(self, data=None):
+    @classmethod
+    def update(cls, client, resource_id, data=None, file_object=None):
         if data:
-            if isinstance(data, str):
+            if not file_object and isinstance(data, str):
                 data = json.loads(data)
-            self._update_fields(data)
-
-        headers = {'Content-Type': self.__class__.update_content_type}
-        data = {}
-        fields = self.__class__.fields
-        for k, f in fields.items():
-            if self._fields[k].has_option(Field.SERIALIZE):
-                data[k] = getattr(self, k)
-        response = self.client.put(self.__class__._path(resource_id=self.id),
-                                   headers=headers, data=json.dumps(data))
+        response = client.put(cls._path(resource_id=resource_id),
+                              headers='', data=data, file_object=file_object)
         try:
-            self._set_fields(response.json())
+            instance = cls(client)
+            name = cls.resource_response_object_name
+            r = response.json()
+            r_obj = r.get(name)
+            instance._set_fields(r_obj)
+            return instance
         except CoercionError as e:
             raise ResponseParseError(e)
 
@@ -182,10 +163,12 @@ class ListMixin(object):
             raise ResponseParseError(e)
 
 
-class DataStore(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
+class DataStore(Resource, ListMixin, GetMixin, CreateMixin, UpdateMixin, DeleteMixin):
     resource_name = 'data-stores'
     resource_response_object_name = 'data_store'
-    resource_response_objects_name = 'data_store'
+    resource_response_objects_name = 'data_stores'
+    project_id = None
+
     fields = {
         'id': IntegerField,
         'name': UnicodeField,
@@ -194,6 +177,7 @@ class DataStore(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
         'created': DateTimeField,
         'belongs_to_user': BooleanField,
         'project_id': IntegerField,
+        'public_url': UnicodeField,
         'converted': BooleanField,
     }
 
@@ -212,13 +196,16 @@ class DataStore(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
         Returns:
             True if data store conversion has completed, otherwise False.
 
-        Raises:
-            ResponseParseError: Unable to parse response (sync call) from API.
         """
-        self.sync()
         if self.status in [DataStore.STATUS_FINISHED, DataStore.STATUS_FAILED]:
             return True
         return False
+
+    @classmethod
+    def _path(cls, resource_id=None):
+        if cls.project_id:
+            return '{0}?project_id={1}'.format(cls.resource_name, cls.project_id)
+        return super(DataStore, cls)._path(resource_id)
 
     @classmethod
     def status_code_to_text(cls, status_code):
@@ -319,6 +306,13 @@ class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
         return self.client.create_user_scenario_validation(
             {'user_scenario_id': self.id})
 
+    def update_scenario(self, data):
+        fields = self.fields
+        for k, f in fields.items():
+            if not data.get(k):
+                data[k] = getattr(self, k)
+        return super(UserScenario, self).update(self.client, self.id, data)
+
 
 class UserScenarioValidationResult(Resource, ListMixin):
     resource_name = 'validations'
@@ -364,11 +358,7 @@ class UserScenarioValidation(Resource, GetMixin, CreateMixin):
 
         Returns:
             True if validation has completed, otherwise False.
-
-        Raises:
-            ResponseParseError: Unable to parse response (sync call) from API.
         """
-        #self.sync()
         if self.status in [UserScenarioValidation.STATUS_FINISHED,
                            UserScenarioValidation.STATUS_FAILED]:
             return True

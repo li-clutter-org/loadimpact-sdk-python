@@ -99,7 +99,6 @@ class TestResourcesDataStore(unittest.TestCase):
     def test_has_conversion_finished(self):
         ds = DataStore(self.client)
         self.assertFalse(ds.has_conversion_finished())
-        self.assertEqual(self.client.last_request_method, 'get')
 
     def test_has_conversion_finished_status_queued(self):
         self._check_has_conversion_finished(DataStore.STATUS_QUEUED, False)
@@ -117,7 +116,6 @@ class TestResourcesDataStore(unittest.TestCase):
         ds = DataStore(self.client)
         ds.status = status
         self.assertEqual(ds.has_conversion_finished(), expected)
-        self.assertEqual(self.client.last_request_method, 'get')
 
 
 class TestResourcesLoadZone(unittest.TestCase):
@@ -155,30 +153,15 @@ class TestResourcesUserScenario(unittest.TestCase):
         self.assertEqual(user_scenario.name, 'My test user scenario')
 
     def test_update_with_dict(self):
-        name_change = 'Test User Scenario'
-        client = MockClient(response_body={'name': name_change})
+        new_script = '---'
+        client = MockClient(response_body={'user_scenario': {'script': new_script}})
         user_scenario = UserScenario(client)
-        user_scenario.update({'name': name_change})
+        user_scenario = user_scenario.update_scenario(data={'script': new_script})
 
         self.assertEqual(client.last_request_method, 'put')
-        self.assertEqual(client.last_request_kwargs['data']['name'],
-                         name_change)
-        self.assertEqual(client.last_request_kwargs['headers']['Content-Type'],
-                         'application/json')
-        self.assertEqual(user_scenario.name, name_change)
-
-    def test_update_with_attribute(self):
-        name_change = 'Test User Scenario'
-        user_scenario = UserScenario(self.client)
-        user_scenario.name = name_change
-        user_scenario.update()
-
-        self.assertEqual(self.client.last_request_method, 'put')
-        self.assertEqual(self.client.last_request_kwargs['data']['name'],
-                         name_change)
-        self.assertEqual(self.client.last_request_kwargs['headers']['Content-Type'],
-                         'application/json')
-        self.assertEqual(user_scenario.name, name_change)
+        self.assertEqual(client.last_request_kwargs['data']['script'],
+                         new_script)
+        self.assertEqual(user_scenario.script, new_script)
 
 
 class TestResourcesUserScenarioValidation(unittest.TestCase):
