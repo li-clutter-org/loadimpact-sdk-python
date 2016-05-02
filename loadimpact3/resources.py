@@ -89,6 +89,16 @@ class GetMixin(object):
         except CoercionError as e:
             raise ResponseParseError(e)
 
+    def sync(self):
+        response = self.client.get(self.__class__._path(self.id))
+        try:
+            name = self.resource_response_object_name
+            r = response.json()
+            r_obj = r.get(name)
+            self._set_fields(r_obj)
+        except CoercionError as e:
+            raise ResponseParseError(e)
+
 
 class CreateMixin(object):
     create_content_type = 'application/json'
@@ -197,6 +207,9 @@ class DataStore(Resource, ListMixin, GetMixin, CreateMixin, UpdateMixin, DeleteM
             True if data store conversion has completed, otherwise False.
 
         """
+
+        self.sync()
+
         if self.status in [DataStore.STATUS_FINISHED, DataStore.STATUS_FAILED]:
             return True
         return False

@@ -19,6 +19,11 @@ limitations under the License.
 import json
 import unittest
 
+try:
+    from unittest.mock import MagicMock
+except ImportError:
+    from mock import MagicMock
+
 from loadimpact3.clients import Client
 from loadimpact3.fields import IntegerField
 from loadimpact3.resources import (
@@ -98,6 +103,7 @@ class TestResourcesDataStore(unittest.TestCase):
 
     def test_has_conversion_finished(self):
         ds = DataStore(self.client)
+        ds.sync = MagicMock()
         self.assertFalse(ds.has_conversion_finished())
 
     def test_has_conversion_finished_status_queued(self):
@@ -115,6 +121,7 @@ class TestResourcesDataStore(unittest.TestCase):
     def _check_has_conversion_finished(self, status, expected):
         ds = DataStore(self.client)
         ds.status = status
+        ds.sync = MagicMock()
         self.assertEqual(ds.has_conversion_finished(), expected)
 
 
