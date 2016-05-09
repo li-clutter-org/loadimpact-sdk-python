@@ -240,7 +240,8 @@ class Client(object):
         return kwargs
 
     def _request(self, method, *args, **kwargs):
-        headers = {'user-agent': self.__class__.user_agent}
+        headers = {'user-agent': self.__class__.user_agent,
+                   'x-load-impact-agent': self.user_agent}
         if 'headers' not in kwargs:
             kwargs['headers'] = headers
         else:
