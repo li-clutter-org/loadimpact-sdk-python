@@ -19,6 +19,7 @@ limitations under the License.
 from __future__ import absolute_import
 
 import hashlib
+from time import sleep
 
 import sys
 
@@ -30,7 +31,8 @@ import json
 from .exceptions import CoercionError, ResponseParseError
 from .fields import (
     DataStoreListField, DateTimeField, DictField, Field, IntegerField,
-    UnicodeField, BooleanField)
+    UnicodeField, BooleanField, ListField, TimeStampField, FloatField)
+from .utils import is_dict_different
 from pprint import pformat
 
 
@@ -354,10 +356,71 @@ class Test(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
         return self.client.create_test_run({'test_id': self.id})
 
 
+class _TestRunResultStream(object):
+    def __init__(self, test_run, result_ids):
+        self.test_run = test_run
+        self.result_ids = result_ids
+        self._last = dict([(rid, {'offset': -1, 'data': {}}) for rid in result_ids])
+        self._last_two = []
+        self._series = {}
+
+    @property
+    def series(self):
+        return self._series
+
+    def __call__(self, poll_rate=3, post_polls=5):
+        def is_done(self):
+            if not self.test_run.is_done() or not self.is_done():
+                return False
+            return True
+
+        done = False
+        while not done or 0 < post_polls:
+            done = is_done(self)
+            if done:
+                post_polls -= 1
+            q = ['%s|%d' % (rid, self._last.get(rid, {}).get('offset', -1))
+                 for rid in self.result_ids]
+
+            results = TestRunResults.list(self.test_run.client, self.test_run.id, {'ids': ','.join(q)})
+            change = {}
+            for result in results:
+                try:
+                    if result.offset > self._last[result.sid]['offset']:
+                        change[result.sid] = result.data[-1]
+                        self._last[result.sid]['data'] = result.data[-1]
+                        self._last[result.sid]['offset'] = result.offset
+                except (IndexError, KeyError):
+                    continue
+                self._series.setdefault(result.id, []).extend(result.data)
+
+            if 2 == len(self._last_two):
+                self._last_two.pop(0)
+            self._last_two.append(self._last)
+            if change:
+                yield {k: TestRunMetricPoint(None, **v) for k,v in change.iteritems()}
+            sleep(poll_rate)
+
+    def __iter__(self):
+        return self.__call__()
+
+    def is_done(self):
+        if 2 != len(self._last_two):
+            return False
+        if is_dict_different(self._last_two[0], self._last_two[1]):
+            return False
+        return True
+
+    def _get(self, path, params):
+        return self.test_run.client.get(path, params=params)
+
+
 class TestRun(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
     resource_name = 'test-runs'
     resource_response_object_name = 'test_run'
     resource_response_objects_name = 'test_runs'
+
+    stream_class = _TestRunResultStream
 
     STATUS_CREATED = -1
     STATUS_QUEUED = 0
@@ -385,6 +448,24 @@ class TestRun(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
 
     def list_test_run_result_ids(self, data):
         return self.client.list_test_run_result_ids(self.id, data)
+
+    def result_stream(self, result_ids=None):
+        """Get access to result stream.
+        Args:
+            result_ids: List of result IDs to include in this stream.
+        Returns:
+            Test result stream object.
+        """
+        if not result_ids:
+            load_zone_id = LoadZone.name_to_id(LoadZone.AGGREGATE_WORLD)
+            result_ids = [
+                TestRunMetric.result_id_from_name(TestRunMetric.ACTIVE_USERS, load_zone_id),
+                TestRunMetric.result_id_from_name(TestRunMetric.REQUESTS_PER_SECOND, load_zone_id),
+                TestRunMetric.result_id_from_name(TestRunMetric.BANDWIDTH, load_zone_id),
+                TestRunMetric.result_id_from_name(TestRunMetric.USER_LOAD_TIME, load_zone_id),
+                TestRunMetric.result_id_from_name(TestRunMetric.FAILURE_RATE, load_zone_id)
+            ]
+        return self.__class__.stream_class(self, result_ids)
 
     def is_done(self):
         """Check whether test is done or not.
@@ -456,7 +537,7 @@ class TestRunResults(Resource, ListWithParamsMixin):
         'sid': UnicodeField,
         'type': IntegerField,
         'offset': IntegerField,
-        'data': DictField,
+        'data': ListField,
     }
 
     @classmethod
@@ -525,6 +606,25 @@ class TestRunMetric(object):
                                             str(load_zone_id),
                                             str(user_scenario_id),
                                             str(status_code), method)
+
+
+class TestRunMetricPoint(Resource):
+    fields = {
+        'timestamp': TimeStampField,
+        'data': DictField
+    }
+
+    @classmethod
+    def _path(cls, resource_id=None, action=None):
+        raise NotImplementedError
+
+    @property
+    def aggregate_function(self):
+        return self.data.keys()[0]
+
+    @property
+    def value(self):
+        return self.data.values()[0]
 
 
 class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,
