@@ -311,9 +311,32 @@ class TestResourcesTestRun(unittest.TestCase):
         self.assertEqual(test_run.status_text, 'created')
 
 
+class TestRunResultsIds(unittest.TestCase):
+
+    def test_list(self):
+        client = MockClient(response_body={'test_run_result_ids': [{
+            'type': 1,
+            'offset': 2,
+            'ids': {'_li_foo': '', '_li_bar': ''},
+        }]})
+        test_run = client.list_test_run_result_ids(1, data={'types': '1'})
+        self.assertEqual(client.last_request_method, 'post')
+        self.assertEqual(test_run[0].type, 1)
+        self.assertEqual(test_run[0].offset, 2)
+        self.assertEqual(len(test_run[0].ids), 2)
+
+
 class TestStreaming(unittest.TestCase):
     @staticmethod
     def mocked_response_body(id_='__li_user_load_time:1', offset=1, data_len=1):
+        """
+        Generate the response body of a "test_run_results" API request.
+
+        :param id_: metric name (including loadzone specifier, if needed).
+        :param offset: offset of the returned results.
+        :param data_len: number of data points to include.
+        :return: dict with the response body.
+        """
         return {
             "test_run_results": [
                 {
@@ -327,17 +350,23 @@ class TestStreaming(unittest.TestCase):
         }
 
     def test_streaming_basic(self):
+        """
+        Test the streaming of results for 1 metric with 2 data points.
+        """
         metric_id = TestRunMetric.result_id_from_name(TestRunMetric.ACTIVE_USERS, load_zone_id=1)
         client = MockClient(response_body=True)
         client._get_nkwargs = MagicMock(side_effect=[
             self.mocked_response_body(id_=metric_id, offset=1),
+            self.mocked_response_body(id_=metric_id, offset=2),
+            # Use two responses with the same information, combined with stream(post_polls=1)
+            # so stream() is exhausted in a graceful way.
             self.mocked_response_body(id_=metric_id, offset=2),
         ])
         test_run = TestRun(client, id=1, status=TestRun.STATUS_FINISHED)
         test_run.sync = MagicMock()
 
         stream = test_run.result_stream([metric_id])
-        for i, data in enumerate(stream(poll_rate=1), 1):
+        for i, data in enumerate(stream(poll_rate=1, post_polls=1), 1):
             self.assertEqual(client.last_request_method, 'post')
             self.assertEqual(data[metric_id].value, 2000 + i)
         self.assertEqual(i, 2)

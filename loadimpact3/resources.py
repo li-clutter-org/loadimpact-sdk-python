@@ -369,6 +369,14 @@ class _TestRunResultStream(object):
         return self._series
 
     def __call__(self, poll_rate=3, post_polls=5):
+        """
+        Poll the API for results of a TestRun and yield the differences
+        as `TestRunMetricPoint`s until there are no new results.
+
+        :param poll_rate: seconds between API polls.
+        :param post_polls: number of polls with the same results to make
+        before marking the polling as completed.
+        """
         def is_done(self):
             if not self.test_run.is_done() or not self.is_done():
                 return False
@@ -379,6 +387,7 @@ class _TestRunResultStream(object):
             done = is_done(self)
             if done:
                 post_polls -= 1
+            # Build the query, requesting results only from each offset onward.
             q = ['%s|%d' % (rid, self._last.get(rid, {}).get('offset', -1))
                  for rid in self.result_ids]
 
@@ -387,6 +396,7 @@ class _TestRunResultStream(object):
             for result in results:
                 try:
                     if result.offset > self._last[result.sid]['offset']:
+                        # Store the changes for the metric and the offset.
                         change[result.sid] = result.data[-1]
                         self._last[result.sid]['data'] = result.data[-1]
                         self._last[result.sid]['offset'] = result.offset
@@ -398,7 +408,8 @@ class _TestRunResultStream(object):
                 self._last_two.pop(0)
             self._last_two.append(self._last)
             if change:
-                yield {k: TestRunMetricPoint(None, **v) for k,v in change.iteritems()}
+                # Coerce the changes to TestRunMetricPoint before returning.
+                yield {k: TestRunMetricPoint(None, **v) for k, v in change.items()}
             sleep(poll_rate)
 
     def __iter__(self):
@@ -609,6 +620,11 @@ class TestRunMetric(object):
 
 
 class TestRunMetricPoint(Resource):
+    """
+    Individual point of a Test Run Metric. This class is provided by
+    convenience, as the API does not expose get/list methods but rather
+    is included as `data` on the output of TestRunResults.
+    """
     fields = {
         'timestamp': TimeStampField,
         'data': DictField
@@ -620,11 +636,11 @@ class TestRunMetricPoint(Resource):
 
     @property
     def aggregate_function(self):
-        return self.data.keys()[0]
+        return next(iter(self.data.keys()))
 
     @property
     def value(self):
-        return self.data.values()[0]
+        return next(iter(self.data.values()))
 
 
 class UserScenario(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin,

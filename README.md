@@ -15,7 +15,7 @@ It has one dependency, the [requests](http://www.python-requests.org/) library.
 Install using `pip`:
 
 ```sh
-pip install loadimpact
+pip install loadimpact-v3
 ```
 [![PyPI](https://img.shields.io/pypi/v/loadimpact.svg)]() [![PyPI](https://img.shields.io/pypi/dm/loadimpact.svg)]()
 
@@ -27,8 +27,8 @@ your [loadimpact.com account page](https://loadimpact.com/account/).
 You either enter your API token as an argument when creating the client:
 
 ```python
-import loadimpact
-client = loadimpact.ApiTokenClient(api_token='YOUR_API_TOKEN_GOES_HERE')
+import loadimpact3
+client = loadimpact3.ApiTokenClient(api_token='YOUR_API_TOKEN_GOES_HERE')
 ```
 
 or using environment variables:
@@ -37,8 +37,8 @@ or using environment variables:
 export LOADIMPACT_API_TOKEN=YOUR_API_TOKEN_GOES_HERE
 ```
 ```python
-import loadimpact
-client = loadimpact.ApiTokenClient()
+import loadimpact3
+client = loadimpact3.ApiTokenClient()
 ```
 
 ## Using an API client
@@ -78,6 +78,7 @@ for result in validation_results:
     print("[{0}] {1}".format(result.timestamp, result.message))
 
 print("Validation completed with status: {0}".format(validation.status_text))
+```
 
 ### Uploading a data store (CSV file with parameterization data)
 For more information regarding parameterized data have a look at [this

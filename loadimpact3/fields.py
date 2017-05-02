@@ -92,6 +92,9 @@ class DateTimeField(Field):
 
 
 class TimeStampField(DateTimeField):
+    """
+    Specific Field that is created by a JSON Unix epoch timestamp format.
+    """
     field_type = datetime
 
     @classmethod
