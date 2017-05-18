@@ -21,7 +21,7 @@ import optparse
 import sys
 import traceback
 
-from loadimpact import (
+from loadimpact3 import (
     ApiTokenClient, ApiError, UserScenarioValidation,
     __version__ as li_sdk_version)
 

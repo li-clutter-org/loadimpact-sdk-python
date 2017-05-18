@@ -17,18 +17,16 @@ limitations under the License.
 """
 
 import json
-import os
 import requests
 import unittest
 
-from loadimpact.clients import ApiTokenClient, Client
-from loadimpact.exceptions import (
-    ApiError, BadRequestError, ClientError, ConflictError, ConnectionError,
+from loadimpact3.clients import ApiTokenClient, Client
+from loadimpact3.exceptions import (
+    ApiError, BadRequestError, ClientError, ConnectionError,
     ForbiddenError, GoneError, HTTPError, MethodNotAllowedError,
     MissingApiTokenError, NotFoundError, RateLimitError, ServerError,
     TimeoutError, UnauthorizedError)
-from loadimpact.resources import (
-    DataStore, Test, TestConfig, UserScenario, UserScenarioValidation)
+from loadimpact3.resources import DataStore
 
 try:
     from StringIO import StringIO
@@ -37,24 +35,26 @@ except ImportError:
 
 
 class MockRequestsResponse(object):
-    def __init__(self, expecting_list=False, status_code=200, **kwargs):
+    def __init__(self, expecting_list=False, resource_type='object', status_code=200, **kwargs):
         self.expecting_list = expecting_list
         self.url = 'http://example.com/'
         self.status_code = status_code
         self.text = ''
+        self.resource_type = resource_type
         self.kwargs = kwargs
         for k, v in kwargs.items():
             setattr(self, k, v)
 
     def json(self):
-        return [self.kwargs] if self.expecting_list else self.kwargs
+        return {self.resource_type: [self.kwargs]} if self.expecting_list else {self.resource_type: self.kwargs}
 
 
 class MockClient(Client):
-    def __init__(self, expecting_list=False, timeout=Client.default_timeout,
+    def __init__(self, expecting_list=False, resource_type=None, timeout=Client.default_timeout,
                  **kwargs):
         super(MockClient, self).__init__(timeout=timeout)
         self.expecting_list = expecting_list
+        self.resource_type = resource_type
         self.kwargs = kwargs
         self.last_request_method = None
         self.last_request_args = None
@@ -74,7 +74,7 @@ class MockClient(Client):
                 nkwargs = kwargs['data']
             elif isinstance(kwargs['data'], str):
                 nkwargs = json.loads(kwargs['data'])
-        return MockRequestsResponse(expecting_list=self.expecting_list,
+        return MockRequestsResponse(expecting_list=self.expecting_list, resource_type=self.resource_type,
                                     **nkwargs)
 
 
@@ -116,12 +116,16 @@ class TestClientsClient(unittest.TestCase):
         self.assertEqual(client.last_request_kwargs['timeout'], timeout)
 
     def test_create_data_store(self):
-        client = MockClient()
+        client = MockClient(resource_type='data_store')
+
         data = {
             'name': 'Test Data Store',
+            'project_id': 1,
             'fromline': 0,
             'separator': 'comma',
-            'delimeter': 'double'
+            'delimeter': 'tab',
+            'quotechar': 'double',
+            'file': ''
         }
         csv = 'column1,column2,column3'
         data_store = client.create_data_store(data, StringIO(csv))
@@ -142,7 +146,7 @@ class TestClientsClient(unittest.TestCase):
         self.assertEqual(data_store.rows, 0)
 
     def test_get_data_store(self):
-        client = MockClient()
+        client = MockClient(resource_type='data_store')
         data_store = client.get_data_store(1)
 
         self.assertEqual(client.last_request_method, 'get')
@@ -152,8 +156,8 @@ class TestClientsClient(unittest.TestCase):
         self.assertEqual(data_store.rows, 0)
 
     def test_list_data_stores(self):
-        client = MockClient(expecting_list=True)
-        data_stores = client.list_data_stores()
+        client = MockClient(resource_type='data_stores', expecting_list=True)
+        data_stores = client.list_data_stores(project_id=1)
 
         self.assertEqual(client.last_request_method, 'get')
         self.assertEqual(len(data_stores), 1)
@@ -162,100 +166,44 @@ class TestClientsClient(unittest.TestCase):
         self.assertEqual(data_stores[0].status, DataStore.STATUS_QUEUED)
         self.assertEqual(data_stores[0].rows, 0)
 
-    def test_create_test_config(self):
-        client = MockClient()
-        data = {
-            'name': 'Test Config',
-            'url': 'http://example.com/',
-            'config': {
-                "load_schedule": [{"users": 10, "duration": 10}],
-                "tracks": [{
-                    "clips": [{
-                        "user_scenario_id": 1, "percent": 100
-                    }],
-                    "loadzone": 11
-                }]
-            }
-        }
-        test_config = client.create_test_config(data)
-
-        self.assertEqual(client.last_request_method, 'post')
-        self.assertEqual(client.last_request_kwargs['data']['name'],
-                         data['name'])
-        self.assertEqual(client.last_request_kwargs['data']['url'],
-                         data['url'])
-        self.assertEqual(client.last_request_kwargs['data']['config'],
-                         data['config'])
-        self.assertEqual(test_config.name, data['name'])
-        self.assertEqual(test_config.url, data['url'])
-        self.assertEqual(test_config.config, data['config'])
-
-    def test_get_test_config(self):
-        client = MockClient()
-        test_config = client.get_test_config(1)
-
-        self.assertEqual(client.last_request_method, 'get')
-        self.assertEqual(test_config.id, 0)  # ID = 0 by default
-        self.assertEqual(test_config.name, '')
-        self.assertEqual(test_config.url, '')
-        self.assertEqual(test_config.config, {})
-
-    def test_list_test_configs(self):
-        client = MockClient(expecting_list=True)
-        test_configs = client.list_test_configs()
-
-        self.assertEqual(client.last_request_method, 'get')
-        self.assertEqual(len(test_configs), 1)
-        self.assertEqual(test_configs[0].id, 0)  # ID = 0 by default
-        self.assertEqual(test_configs[0].name, '')
-        self.assertEqual(test_configs[0].url, '')
-        self.assertEqual(test_configs[0].config, {})
-
     def test_create_user_scenario(self):
-        client = MockClient()
+        client = MockClient(resource_type='user_scenario')
         data = {
             'name': 'Test User Scenario',
-            'load_script': 'log.info("Hello World!")',
-            'data_stores': []
+            'script': 'log.info("Hello World!")',
+            'project_id': 1
         }
         user_scenario = client.create_user_scenario(data)
 
         self.assertEqual(client.last_request_method, 'post')
         self.assertEqual(client.last_request_kwargs['data']['name'],
                          data['name'])
-        self.assertEqual(client.last_request_kwargs['data']['load_script'],
-                         data['load_script'])
-        self.assertEqual(client.last_request_kwargs['data']['data_stores'],
-                         data['data_stores'])
+        self.assertEqual(client.last_request_kwargs['data']['script'],
+                         data['script'])
         self.assertEqual(user_scenario.name, data['name'])
-        self.assertEqual(user_scenario.load_script, data['load_script'])
-        self.assertEqual(user_scenario.data_stores, data['data_stores'])
+        self.assertEqual(user_scenario.script, data['script'])
 
     def test_get_user_scenario(self):
-        client = MockClient()
+        client = MockClient(resource_type='user_scenario')
         user_scenario = client.get_user_scenario(1)
 
         self.assertEqual(client.last_request_method, 'get')
         self.assertEqual(user_scenario.id, 0)  # ID = 0 by default
         self.assertEqual(user_scenario.name, '')
-        self.assertEqual(user_scenario.script_type, '')
-        self.assertEqual(user_scenario.load_script, '')
-        self.assertEqual(user_scenario.data_stores, [])
+        self.assertEqual(user_scenario.script, '')
 
     def test_list_user_scenarios(self):
-        client = MockClient(expecting_list=True)
-        user_scenarios = client.list_user_scenarios()
+        client = MockClient(expecting_list=True, resource_type='user_scenarios')
+        user_scenarios = client.list_user_scenarios(project_id=1)
 
         self.assertEqual(client.last_request_method, 'get')
         self.assertEqual(len(user_scenarios), 1)
         self.assertEqual(user_scenarios[0].id, 0)  # ID = 0 by default
         self.assertEqual(user_scenarios[0].name, '')
-        self.assertEqual(user_scenarios[0].script_type, '')
-        self.assertEqual(user_scenarios[0].load_script, '')
-        self.assertEqual(user_scenarios[0].data_stores, [])
+        self.assertEqual(user_scenarios[0].script, '')
 
     def test_create_user_scenario_validation(self):
-        client = MockClient()
+        client = MockClient(resource_type='user_scenario_validation')
         data = {
             'user_scenario_id': 1
         }
@@ -265,6 +213,24 @@ class TestClientsClient(unittest.TestCase):
         self.assertEqual(client.last_request_kwargs['data']['user_scenario_id'],
                          data['user_scenario_id'])
         self.assertEqual(validation.user_scenario_id, data['user_scenario_id'])
+
+    def test_list_organizations(self):
+        client = MockClient(resource_type='organizations', expecting_list=True)
+        organizations = client.list_organizations()
+
+        self.assertEqual(client.last_request_method, 'get')
+        self.assertEqual(len(organizations), 1)
+        self.assertEqual(organizations[0].id, 0)  # ID = 0 by default
+        self.assertEqual(organizations[0].name, '')
+
+    def test_list_projects_for_organization(self):
+        client = MockClient(resource_type='projects', expecting_list=True)
+        projects = client.list_organization_projects(1)
+
+        self.assertEqual(client.last_request_method, 'get')
+        self.assertEqual(len(projects), 1)
+        self.assertEqual(projects[0].id, 0)  # ID = 0 by default
+        self.assertEqual(projects[0].name, '')
 
     def test__check_response_200(self):
         client = MockClient()
