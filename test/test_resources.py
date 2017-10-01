@@ -27,7 +27,7 @@ except ImportError:
 from loadimpact3.clients import Client
 from loadimpact3.fields import IntegerField
 from loadimpact3.resources import (
-    DataStore, LoadZone, Resource, UserScenario, UserScenarioValidation)
+    DataStore, LoadZone, Resource, TestRun, UserScenario, UserScenarioValidation, TestRunMetric)
 
 
 class MockRequestsResponse(object):
@@ -52,20 +52,26 @@ class MockClient(Client):
         self.last_request_args = None
         self.last_request_kwargs = None
 
+    def _get_nkwargs(self):
+        nkwargs = {}
+        response_body = self.kwargs.get('response_body')
+        if response_body:
+            if isinstance(response_body, dict):
+                nkwargs = response_body
+            elif isinstance(response_body, str):
+                nkwargs = json.loads(response_body)
+
+        return nkwargs
+
     def _requests_request(self, method, *args, **kwargs):
         self.last_request_method = method
         self.last_request_args = args
         self.last_request_kwargs = kwargs
         if isinstance(kwargs.get('data'), str):
             self.last_request_kwargs['data'] = json.loads(kwargs['data'])
-        nkwargs = {}
-        if self.kwargs.get('response_body'):
-            if isinstance(self.kwargs['response_body'], dict):
-                nkwargs = self.kwargs['response_body']
-            elif isinstance(self.kwargs['response_body'], str):
-                nkwargs = json.loads(self.kwargs['response_body'])
+
         return MockRequestsResponse(status_code=self.response_status_code,
-                                    **nkwargs)
+                                    **self._get_nkwargs())
 
 
 class MockResource(Resource):
@@ -247,3 +253,120 @@ class TestResourcesProject(unittest.TestCase):
         self.assertEqual(client.last_request_method, 'get')
         self.assertEqual(projects[0].id, 1)
         self.assertEqual(projects[0].name, 'My project')
+
+
+class TestResourcesTest(unittest.TestCase):
+
+    def test_get(self):
+        client = MockClient(response_body={'test': {
+            'id': 1,
+            'name': 'test1',
+            'config': {'config_key_1': 'config_val_1'},
+            'last_test_run_id': 1001,
+        }})
+        test_ = client.get_test(1)
+        self.assertEqual(client.last_request_method, 'get')
+        self.assertEqual(test_.id, 1)
+        self.assertEqual(test_.name, 'test1')
+        self.assertEqual(test_.last_test_run_id, 1001)
+
+    def test_list(self):
+        client = MockClient(response_body={'tests': [{
+            'id': 1,
+            'name': 'test1',
+            'config': {'config_key_1': 'config_val_1'},
+            'last_test_run_id': 1001,
+        }]})
+        tests = client.list_tests([1])
+        self.assertEqual(client.last_request_method, 'get')
+        self.assertEqual(tests[0].id, 1)
+        self.assertEqual(tests[0].name, 'test1')
+        self.assertEqual(tests[0].last_test_run_id, 1001)
+
+
+class TestResourcesTestRun(unittest.TestCase):
+
+    def test_get(self):
+        client = MockClient(response_body={'test_run': {
+            'id': 1,
+            'status': TestRun.STATUS_CREATED,
+            'status_text': 'created',
+        }})
+        test_run = client.get_test_run(1)
+        self.assertEqual(client.last_request_method, 'get')
+        self.assertEqual(test_run.id, 1)
+        self.assertEqual(test_run.status, TestRun.STATUS_CREATED)
+        self.assertEqual(test_run.status_text, 'created')
+
+    def test_create(self):
+        client = MockClient(response_body={'test_run': {
+            'id': 1,
+            'status': TestRun.STATUS_CREATED,
+            'status_text': 'created',
+        }})
+        test_run = client.create_test_run(1)
+        self.assertEqual(client.last_request_method, 'post')
+        self.assertEqual(test_run.id, 1)
+        self.assertEqual(test_run.status, TestRun.STATUS_CREATED)
+        self.assertEqual(test_run.status_text, 'created')
+
+
+class TestRunResultsIds(unittest.TestCase):
+
+    def test_list(self):
+        client = MockClient(response_body={'test_run_result_ids': [{
+            'type': 1,
+            'offset': 2,
+            'ids': {'_li_foo': '', '_li_bar': ''},
+        }]})
+        test_run = client.list_test_run_result_ids(1, data={'types': '1'})
+        self.assertEqual(client.last_request_method, 'post')
+        self.assertEqual(test_run[0].type, 1)
+        self.assertEqual(test_run[0].offset, 2)
+        self.assertEqual(len(test_run[0].ids), 2)
+
+
+class TestStreaming(unittest.TestCase):
+    @staticmethod
+    def mocked_response_body(id_='__li_user_load_time:1', offset=1, data_len=1):
+        """
+        Generate the response body of a "test_run_results" API request.
+
+        :param id_: metric name (including loadzone specifier, if needed).
+        :param offset: offset of the returned results.
+        :param data_len: number of data points to include.
+        :return: dict with the response body.
+        """
+        return {
+            "test_run_results": [
+                {
+                    "load_zone_id": 1,
+                    "offset": offset,
+                    "data": [{"timestamp": 1000 + i, "data": {"value": 2000 + i}}
+                             for i in range(offset, offset+data_len)],
+                    "id": id_.split(':')[0],
+                    "sid": id_
+                }]
+        }
+
+    def test_streaming_basic(self):
+        """
+        Test the streaming of results for 1 metric with 2 data points.
+        """
+        metric_id = TestRunMetric.result_id_from_name(TestRunMetric.ACTIVE_USERS, load_zone_id=1)
+        client = MockClient(response_body=True)
+        client._get_nkwargs = MagicMock(side_effect=[
+            self.mocked_response_body(id_=metric_id, offset=1),
+            self.mocked_response_body(id_=metric_id, offset=2),
+            # Use two responses with the same information, combined with stream(post_polls=1)
+            # so stream() is exhausted in a graceful way.
+            self.mocked_response_body(id_=metric_id, offset=2),
+        ])
+        test_run = TestRun(client, id=1, status=TestRun.STATUS_FINISHED)
+        test_run.sync = MagicMock()
+
+        stream = test_run.result_stream([metric_id])
+        for i, data in enumerate(stream(poll_rate=1, post_polls=1), 1):
+            self.assertEqual(client.last_request_method, 'post')
+            self.assertEqual(data[metric_id].value, 2000 + i)
+        self.assertEqual(i, 2)

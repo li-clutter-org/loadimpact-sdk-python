@@ -91,6 +91,23 @@ class DateTimeField(Field):
         return datetime.utcnow().replace(tzinfo=UTC())
 
 
+class TimeStampField(DateTimeField):
+    """
+    Specific Field that is created by a JSON Unix epoch timestamp format.
+    """
+    field_type = datetime
+
+    @classmethod
+    def coerce(cls, value):
+        if not isinstance(value, cls.field_type):
+            try:
+                return datetime.fromtimestamp(value/10**6).replace(tzinfo=UTC())
+
+            except ValueError as e:
+                raise CoercionError(e)
+        return value
+
+
 class DictField(Field):
     field_type = dict
 

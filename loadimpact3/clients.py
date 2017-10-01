@@ -36,8 +36,9 @@ from .exceptions import (
     MissingApiTokenError, NotFoundError, RateLimitError, ServerError,
     TimeoutError, UnauthorizedError)
 from .resources import (
-    DataStore, UserScenario, UserScenarioValidation,
-    UserScenarioValidationResult, Organization, OrganizationProject)
+    DataStore, Test, TestRun, TestRunResultsIds, UserScenario,
+    UserScenarioValidation, UserScenarioValidationResult,
+    Organization, OrganizationProject, TestRunResults)
 
 try:
     from urlparse import urljoin
@@ -122,6 +123,24 @@ class Client(object):
 
     def list_organization_projects(self, org_id):
         return OrganizationProject.list(self, org_id)
+
+    def list_tests(self, project_id):
+        return Test.list(self, project_id=project_id)
+
+    def get_test(self, resource_id):
+        return Test.get(self, resource_id)
+
+    def get_test_run(self, resource_id):
+        return TestRun.get(self, resource_id)
+
+    def create_test_run(self, data):
+        return TestRun.create(self, data)
+
+    def list_test_run_result_ids(self, resource_id, data):
+        return TestRunResultsIds.list(self, resource_id, data)
+
+    def list_test_run_results(self, resource_id, data):
+        return TestRunResults.list(self, resource_id, data)
 
     @requests_exceptions_handling
     def delete(self, path, headers=None, params=None):
