@@ -34,7 +34,7 @@ test:
 	python setup.py test
 
 coverage:
-	coverage run --source loadimpact setup.py test
+	coverage run --source loadimpact3 setup.py test
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html

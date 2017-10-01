@@ -28,6 +28,7 @@ except ImportError:
 import os
 import platform
 import requests
+from six import raise_from
 
 from .exceptions import (
     ApiError, BadRequestError, ConflictError, ConnectionError, ClientError,
@@ -35,7 +36,9 @@ from .exceptions import (
     MissingApiTokenError, NotFoundError, RateLimitError, ServerError,
     TimeoutError, UnauthorizedError)
 from .resources import (
-    DataStore, Test, TestConfig, UserScenario, UserScenarioValidation)
+    DataStore, Test, TestRun, TestRunResultsIds, UserScenario,
+    UserScenarioValidation, UserScenarioValidationResult,
+    Organization, OrganizationProject, TestRunResults)
 
 try:
     from urlparse import urljoin
@@ -50,9 +53,9 @@ def requests_exceptions_handling(func):
         try:
             return func(*args, **kwargs)
         except requests.exceptions.ConnectionError as e:
-            raise ConnectionError(str(e))
+            raise_from(ConnectionError(str(e)), None)
         except requests.exceptions.HTTPError as e:
-            raise HTTPError(str(e))
+            raise_from(HTTPError(str(e)), None)
         except requests.exceptions.Timeout as e:
             raise TimeoutError(str(e))
         except requests.exceptions.RequestException as e:
@@ -64,7 +67,7 @@ class Client(object):
     """Base client class handling all communication with the Load Impact REST
     API, using simple API token based authentication."""
 
-    api_base_url = 'https://api.loadimpact.com/v2/'
+    api_base_url = 'https://api.loadimpact.com/v3/'
     default_timeout = 30
     error_classes = {
         400: BadRequestError,
@@ -88,26 +91,14 @@ class Client(object):
     def create_data_store(self, data, file_object):
         return DataStore.create(self, data, file_object=file_object)
 
+    def update_data_store(self, resource_id, data, file_object):
+        return DataStore.update(self, resource_id, data, file_object=file_object)
+
     def get_data_store(self, resource_id):
         return DataStore.get(self, resource_id)
 
-    def list_data_stores(self):
-        return DataStore.list(self)
-
-    def get_test(self, resource_id):
-        return Test.get(self, resource_id)
-
-    def list_tests(self):
-        return Test.list(self)
-
-    def create_test_config(self, data):
-        return TestConfig.create(self, data)
-
-    def get_test_config(self, resource_id):
-        return TestConfig.get(self, resource_id)
-
-    def list_test_configs(self):
-        return TestConfig.list(self)
+    def list_data_stores(self, project_id):
+        return DataStore.list(self, project_id=project_id)
 
     def create_user_scenario(self, data):
         return UserScenario.create(self, data)
@@ -115,11 +106,41 @@ class Client(object):
     def get_user_scenario(self, resource_id):
         return UserScenario.get(self, resource_id)
 
-    def list_user_scenarios(self):
-        return UserScenario.list(self)
+    def list_user_scenarios(self, project_id):
+        return UserScenario.list(self, project_id=project_id)
 
     def create_user_scenario_validation(self, data):
         return UserScenarioValidation.create(self, data)
+
+    def get_user_scenario_validation(self, resource_id):
+        return UserScenarioValidation.get(self, resource_id)
+
+    def get_user_scenario_validation_result(self, resource_id):
+        return UserScenarioValidationResult.list(self, resource_id)
+
+    def list_organizations(self):
+        return Organization.list(self)
+
+    def list_organization_projects(self, org_id):
+        return OrganizationProject.list(self, org_id)
+
+    def list_tests(self, project_id):
+        return Test.list(self, project_id=project_id)
+
+    def get_test(self, resource_id):
+        return Test.get(self, resource_id)
+
+    def get_test_run(self, resource_id):
+        return TestRun.get(self, resource_id)
+
+    def create_test_run(self, data):
+        return TestRun.create(self, data)
+
+    def list_test_run_result_ids(self, resource_id, data):
+        return TestRunResultsIds.list(self, resource_id, data)
+
+    def list_test_run_results(self, resource_id, data):
+        return TestRunResults.list(self, resource_id, data)
 
     @requests_exceptions_handling
     def delete(self, path, headers=None, params=None):
@@ -238,7 +259,8 @@ class Client(object):
         return kwargs
 
     def _request(self, method, *args, **kwargs):
-        headers = {'user-agent': self.__class__.user_agent}
+        headers = {'user-agent': self.__class__.user_agent,
+                   'x-load-impact-agent': self.user_agent}
         if 'headers' not in kwargs:
             kwargs['headers'] = headers
         else:

@@ -1,15 +1,15 @@
 language: python
 python:
-  - "2.6"
   - "2.7"
-  - "3.2"
   - "3.3"
+  - "3.4"
+  - "3.5"
 install:
   - python setup.py -q install
-  - pip install -r requirements.txt --use-mirrors
+  - pip install -r requirements.txt
   - pip install coverage==3.7.1
   - pip install coveralls
 script:
-  - coverage run --source=loadimpact setup.py test
+  - coverage run --source=loadimpact3 setup.py test
 after_success:
   - coveralls

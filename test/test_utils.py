@@ -18,7 +18,7 @@ limitations under the License.
 
 import unittest
 
-from loadimpact.utils import is_dict_different, UTC
+from loadimpact3.utils import is_dict_different, UTC
 
 
 class TestUtilsFunctions(unittest.TestCase):
