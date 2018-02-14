@@ -463,6 +463,9 @@ class TestRun(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
         'status_text': UnicodeField,
     }
 
+    def abort(self):
+        self.client.post(self.__class__._path(resource_id=self.id, action='abort'))
+
     def list_test_run_result_ids(self, data):
         return self.client.list_test_run_result_ids(self.id, data)
 
