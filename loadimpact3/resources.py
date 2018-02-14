@@ -28,7 +28,7 @@ __all__ = ['DataStore', 'LoadZone', 'Test',
 
 import json
 
-from .exceptions import CoercionError, ResponseParseError
+from .exceptions import CoercionError, ResponseParseError, ServerError
 from .fields import (
     DataStoreListField, DateTimeField, DictField, Field, IntegerField,
     UnicodeField, BooleanField, ListField, TimeStampField, FloatField)
@@ -357,9 +357,10 @@ class Test(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
 
 
 class _TestRunResultStream(object):
-    def __init__(self, test_run, result_ids):
+    def __init__(self, test_run, result_ids, raise_api_errors=False):
         self.test_run = test_run
         self.result_ids = result_ids
+        self.raise_api_errors = raise_api_errors
         self._last = dict([(rid, {'offset': -1, 'data': {}}) for rid in result_ids])
         self._last_two = []
         self._series = {}
@@ -391,7 +392,12 @@ class _TestRunResultStream(object):
             q = ['%s|%d' % (rid, self._last.get(rid, {}).get('offset', -1))
                  for rid in self.result_ids]
 
-            results = TestRunResults.list(self.test_run.client, self.test_run.id, {'ids': ','.join(q)})
+            try:
+                results = TestRunResults.list(self.test_run.client, self.test_run.id, {'ids': ','.join(q)})
+            except ServerError as e:
+                if self.raise_api_errors:
+                    raise e
+                results = []
             change = {}
             for result in results:
                 try:
@@ -460,7 +466,7 @@ class TestRun(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
     def list_test_run_result_ids(self, data):
         return self.client.list_test_run_result_ids(self.id, data)
 
-    def result_stream(self, result_ids=None):
+    def result_stream(self, result_ids=None, raise_api_errors=False):
         """Get access to result stream.
         Args:
             result_ids: List of result IDs to include in this stream.
@@ -476,7 +482,7 @@ class TestRun(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
                 TestRunMetric.result_id_from_name(TestRunMetric.USER_LOAD_TIME, load_zone_id),
                 TestRunMetric.result_id_from_name(TestRunMetric.FAILURE_RATE, load_zone_id)
             ]
-        return self.__class__.stream_class(self, result_ids)
+        return self.__class__.stream_class(self, result_ids, raise_api_errors=raise_api_errors)
 
     def is_done(self):
         """Check whether test is done or not.
