@@ -379,7 +379,7 @@ class _TestRunResultStream(object):
         before marking the polling as completed.
         """
         def is_done(self):
-            if not self.test_run.is_done() or not self.is_done():
+            if not self.test_run.is_done(raise_api_errors=self.raise_api_errors) or not self.is_done():
                 return False
             return True
 
@@ -487,18 +487,22 @@ class TestRun(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
             ]
         return self.__class__.stream_class(self, result_ids, raise_api_errors=raise_api_errors)
 
-    def is_done(self):
+    def is_done(self, raise_api_errors=False):
         """Check whether test is done or not.
         Returns:
             True if test has completed, otherwise False.
         Raises:
             ResponseParseError: Unable to parse response (sync call) from API.
         """
-        self.sync()
-        if self.status in [self.STATUS_FINISHED, self.STATUS_TIMED_OUT, self.STATUS_ABORTED_USER,
-                           self.STATUS_ABORTED_SYSTEM, self.STATUS_ABORTED_SCRIPT_ERROR,
-                           self.STATUS_ABORTED_THRESHOLD, self.STATUS_FAILED_THRESHOLD]:
-            return True
+        try:
+            self.sync()
+            if self.status in [self.STATUS_FINISHED, self.STATUS_TIMED_OUT, self.STATUS_ABORTED_USER,
+                               self.STATUS_ABORTED_SYSTEM, self.STATUS_ABORTED_SCRIPT_ERROR,
+                               self.STATUS_ABORTED_THRESHOLD, self.STATUS_FAILED_THRESHOLD]:
+                return True
+        except ServerError as e:
+            if raise_api_errors:
+                raise e
         return False
 
 
