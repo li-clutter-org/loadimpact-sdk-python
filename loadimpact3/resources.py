@@ -28,7 +28,7 @@ __all__ = ['DataStore', 'LoadZone', 'Test',
 
 import json
 
-from .exceptions import CoercionError, ResponseParseError, ServerError
+from .exceptions import ApiError, CoercionError, ResponseParseError
 from .fields import (
     DataStoreListField, DateTimeField, DictField, Field, IntegerField,
     UnicodeField, BooleanField, ListField, TimeStampField, FloatField)
@@ -394,7 +394,7 @@ class _TestRunResultStream(object):
 
             try:
                 results = TestRunResults.list(self.test_run.client, self.test_run.id, {'ids': ','.join(q)})
-            except ServerError as e:
+            except ApiError as e:
                 if self.raise_api_errors:
                     raise e
                 results = []
@@ -500,7 +500,7 @@ class TestRun(Resource, ListMixin, GetMixin, CreateMixin, DeleteMixin):
                                self.STATUS_ABORTED_SYSTEM, self.STATUS_ABORTED_SCRIPT_ERROR,
                                self.STATUS_ABORTED_THRESHOLD, self.STATUS_FAILED_THRESHOLD]:
                 return True
-        except ServerError as e:
+        except ApiError as e:
             if raise_api_errors:
                 raise e
         return False
